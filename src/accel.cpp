@@ -3,6 +3,7 @@
 
     Copyright (c) 2015 by Wenzel Jakob
 */
+#include <chrono>
 
 #include <nori/accel.h>
 #include <Eigen/Geometry>
@@ -18,6 +19,53 @@ void Accel::addMesh(Mesh *mesh) {
 
 void Accel::build() {
     /* Nothing to do here for now */
+    auto start_time = std::chrono::system_clock::now();
+    auto indices = m_mesh->getIndices();
+    std::vector<uint32_t> facesIndices(indices.cols());
+    for (Eigen::Index i = 0; i < indices.cols(); i++) {
+      facesIndices[i] = i;
+    }
+    octree_ =
+        std::make_shared<Octree>(m_bbox, m_mesh->getVertexPositions(), indices, facesIndices);
+
+    auto end_time = std::chrono::system_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      end_time - start_time)
+                      .count();
+    std::cout << "\nAccel::build cost total time " << duration << "ms\n";
+    octree_->OutputDebugInfo();
+}
+
+bool Accel::rayIntersectOctree(std::shared_ptr<Octree> octree, Ray3f &ray,
+                               Intersection &its, bool shadowRay, uint32_t &f) const {
+  if (octree->facesIndices_.size() > 0) {
+    // leaf node
+    bool foundIntersection = false;
+    for (const auto &faceIndex : octree->facesIndices_) {
+      float u, v, t;
+      if (m_mesh->rayIntersect(faceIndex, ray, u, v, t)) {
+        /* An intersection was found! Can terminate
+           immediately if this is a shadow ray query */
+        if (shadowRay)
+          return true;
+        ray.maxt = its.t = t;
+        its.uv = Point2f(u, v);
+        its.mesh = m_mesh;
+        f = faceIndex;
+        foundIntersection = true;
+      }
+    }
+    if (foundIntersection)
+      return true;
+  }
+
+  bool intersectChild = false;
+  for (auto child : octree->children_) {
+    if (child->bbox_.rayIntersect(ray) && rayIntersectOctree(child, ray, its, shadowRay, f))
+      intersectChild = true;
+  }
+
+  return intersectChild;
 }
 
 bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its, bool shadowRay) const {
@@ -27,20 +75,23 @@ bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its, bool shadowRay) c
     Ray3f ray(ray_); /// Make a copy of the ray (we will need to update its '.maxt' value)
 
     /* Brute force search through all triangles */
-    for (uint32_t idx = 0; idx < m_mesh->getTriangleCount(); ++idx) {
-        float u, v, t;
-        if (m_mesh->rayIntersect(idx, ray, u, v, t)) {
-            /* An intersection was found! Can terminate
-               immediately if this is a shadow ray query */
-            if (shadowRay)
-                return true;
-            ray.maxt = its.t = t;
-            its.uv = Point2f(u, v);
-            its.mesh = m_mesh;
-            f = idx;
-            foundIntersection = true;
-        }
-    }
+    // for (uint32_t idx = 0; idx < m_mesh->getTriangleCount(); ++idx) {
+    //     float u, v, t;
+    //     if (m_mesh->rayIntersect(idx, ray, u, v, t)) {
+    //         /* An intersection was found! Can terminate
+    //            immediately if this is a shadow ray query */
+    //         if (shadowRay)
+    //             return true;
+    //         ray.maxt = its.t = t;
+    //         its.uv = Point2f(u, v);
+    //         its.mesh = m_mesh;
+    //         f = idx;
+    //         foundIntersection = true;
+    //     }
+    // }
+
+    // Octree accel.
+    foundIntersection = rayIntersectOctree(octree_, ray, its, shadowRay, f);
 
     if (foundIntersection) {
         /* At this point, we now know that there is an intersection,
