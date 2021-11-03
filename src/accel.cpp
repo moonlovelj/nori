@@ -7,6 +7,8 @@
 
 #include <nori/accel.h>
 #include <Eigen/Geometry>
+#include <algorithm>
+#include <cmath>
 
 NORI_NAMESPACE_BEGIN
 
@@ -55,15 +57,35 @@ bool Accel::rayIntersectOctree(std::shared_ptr<Octree> octree, Ray3f &ray,
         foundIntersection = true;
       }
     }
-    if (foundIntersection)
-      return true;
+    
+    return foundIntersection;
   }
 
   bool intersectChild = false;
+
+  // Base version
   for (auto child : octree->children_) {
     if (child->bbox_.rayIntersect(ray) && rayIntersectOctree(child, ray, its, shadowRay, f))
       intersectChild = true;
   }
+
+  // std::vector<std::shared_ptr<Octree>> clone_children(octree->children_);
+  // std::sort(clone_children.begin(), clone_children.end(),
+  //           [&ray](auto a, auto b) {
+  //             float ta, tb;
+  //             bool intersect_a = a->bbox_.rayIntersect(ray, ta);
+  //             bool intersect_b = b->bbox_.rayIntersect(ray, tb);
+  //             return std::isless(ta, tb);
+  //           });
+  // for (auto child : clone_children) {
+  //   if (!child->bbox_.rayIntersect(ray))
+  //     break;
+
+  //   if (rayIntersectOctree(child, ray, its, shadowRay, f)) {
+  //     intersectChild = true;
+  //     break;
+  //   }
+  // }
 
   return intersectChild;
 }
