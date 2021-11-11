@@ -26,3 +26,6 @@ rules.ninja
 Debug
 x64
 scenes/pa2/ajax.obj
+.idea
+cmake-build-debug
+
