@@ -75,14 +75,17 @@ float Warp::squareToCosineHemispherePdf(const Vector3f &v) {
 }
 
 Vector3f Warp::squareToBeckmann(const Point2f &sample, float alpha) {
-    throw NoriException("Warp::squareToBeckmann() is not yet implemented!");
+    auto cos_theta = std::sqrtf(1/(1-alpha*alpha*std::logf(sample.x())));
+		auto sin_theta = std::sqrtf(std::max(0.f,1-cos_theta*cos_theta));
+		auto phi = 2 * Pi * sample.y();
+		return Vector3f(sin_theta*std::cosf(phi), sin_theta*std::sinf(phi), cos_theta);
 }
 
 float Warp::squareToBeckmannPdf(const Vector3f &m, float alpha) {
     if (m.z() < 0) return 0;
 
     auto theta = std::acosf(m.z());
-	return 1 / (2 * Pi) * 2 * std::expf(-std::tanf(theta)*std::tanf(theta)/(alpha*alpha)) / (alpha*alpha*m.z()*m.z()*m.z());
+	  return 1 / Pi * std::expf(-std::tanf(theta)*std::tanf(theta)/(alpha*alpha)) / (alpha*alpha*m.z()*m.z()*m.z()) * std::sinf(theta) ;
 }
 
 NORI_NAMESPACE_END
