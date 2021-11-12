@@ -75,17 +75,21 @@ float Warp::squareToCosineHemispherePdf(const Vector3f &v) {
 }
 
 Vector3f Warp::squareToBeckmann(const Point2f &sample, float alpha) {
-    auto cos_theta = std::sqrtf(1/(1-alpha*alpha*std::logf(sample.x())));
-		auto sin_theta = std::sqrtf(std::max(0.f,1-cos_theta*cos_theta));
-		auto phi = 2 * Pi * sample.y();
-		return Vector3f(sin_theta*std::cosf(phi), sin_theta*std::sinf(phi), cos_theta);
+	auto ln = logf(sample.x());
+	auto tan_theta2 = -alpha*alpha*ln;
+	auto cos_theta2 = 1/(1+tan_theta2);
+    auto sin_theta = std::sqrtf(std::max(0.f,1-cos_theta2));
+    auto phi = 2 * Pi * sample.y();
+    return Vector3f(sin_theta*std::cosf(phi), sin_theta*std::sinf(phi), std::sqrtf(cos_theta2));
 }
 
 float Warp::squareToBeckmannPdf(const Vector3f &m, float alpha) {
-    if (m.z() < 0) return 0;
-
-    auto theta = std::acosf(m.z());
-	  return 1 / Pi * std::expf(-std::tanf(theta)*std::tanf(theta)/(alpha*alpha)) / (alpha*alpha*m.z()*m.z()*m.z()) * std::sinf(theta) ;
+    if (m.z() <= 0) return 0;
+    auto cos_theta = m.z();
+    auto cos_theta2 = cos_theta * cos_theta;
+    auto tan_theta2 = (1-cos_theta2)/cos_theta2;
+    auto alpha2 = alpha * alpha;
+    return 1 / Pi * std::expf(-tan_theta2/alpha2) / (alpha2*cos_theta2*cos_theta);
 }
 
 NORI_NAMESPACE_END
