@@ -114,6 +114,8 @@ bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its, bool shadowRay) c
 
     // Octree accel.
     foundIntersection = rayIntersectOctree(octree_, ray, its, shadowRay, f);
+    if (shadowRay)
+    	return foundIntersection;
 
     if (foundIntersection) {
         /* At this point, we now know that there is an intersection,
