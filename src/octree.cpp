@@ -159,6 +159,8 @@ std::string Octree::ToString() const {
 	}
   }
 
+  str += "Name : Octree\n";
+
   str += "Interior node num is : ";
   str += std::to_string(interior_node_num);
   str += "\n";
