@@ -65,8 +65,9 @@ add_executable(nori
   include/nori/vector.h
   include/nori/warp.h
   include/nori/octree.h
+  include/nori/accelstruct.h
 
-  # Source code files
+        # Source code files
   src/bitmap.cpp
   src/block.cpp
   src/accel.cpp
@@ -91,7 +92,11 @@ add_executable(nori
   src/dielectric.cpp
   src/normals.cpp
   src/octree.cpp
-  src/simple.cpp src/ao.cpp src/arealight.cpp src/whitted.cpp)
+  src/simple.cpp
+  src/ao.cpp
+  src/arealight.cpp
+  src/whitted.cpp
+  src/accelstruct.cpp)
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
 

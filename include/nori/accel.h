@@ -55,11 +55,9 @@ public:
     bool rayIntersect(const Ray3f &ray, Intersection &its, bool shadowRay) const;
 
 private:
-    bool rayIntersectOctree(std::shared_ptr<Octree> octree, Ray3f &ray, Intersection &its, bool shadowRay, uint32_t &f) const;
-
-    Mesh         *m_mesh = nullptr; ///< Mesh (only a single one for now)
     BoundingBox3f m_bbox;           ///< Bounding box of the entire scene
-    std::shared_ptr<Octree> octree_{nullptr};
+    std::shared_ptr<AccelStruct> accel_struct_{nullptr};
+    std::vector<Mesh*> meshes_;
 };
 
 NORI_NAMESPACE_END

@@ -13,107 +13,49 @@
 NORI_NAMESPACE_BEGIN
 
 void Accel::addMesh(Mesh *mesh) {
-    if (m_mesh)
-        throw NoriException("Accel: only a single mesh is supported!");
-    m_mesh = mesh;
-    m_bbox = m_mesh->getBoundingBox();
+  	meshes_.push_back(mesh);
+    m_bbox.expandBy(mesh->getBoundingBox());
 }
 
 void Accel::build() {
-    /* Nothing to do here for now */
-    auto start_time = std::chrono::system_clock::now();
-    auto indices = m_mesh->getIndices();
-    std::vector<uint32_t> facesIndices(indices.cols());
-    for (Eigen::Index i = 0; i < indices.cols(); i++) {
-      facesIndices[i] = i;
-    }
-    octree_ =
-        std::make_shared<Octree>(m_bbox, m_mesh->getVertexPositions(), indices, facesIndices);
+  auto start_time = std::chrono::system_clock::now();
+  accel_struct_ =
+	  std::make_shared<Octree>(this->meshes_);
 
-    auto end_time = std::chrono::system_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      end_time - start_time)
-                      .count();
-    std::cout << "\nAccel::build cost total time " << duration << "ms\n";
-    octree_->OutputDebugInfo();
-}
-
-bool Accel::rayIntersectOctree(std::shared_ptr<Octree> octree, Ray3f &ray,
-                               Intersection &its, bool shadowRay, uint32_t &f) const {
-  if (octree->facesIndices_.size() > 0) {
-    // leaf node
-    bool foundIntersection = false;
-    for (const auto &faceIndex : octree->facesIndices_) {
-      float u, v, t;
-      if (m_mesh->rayIntersect(faceIndex, ray, u, v, t)) {
-        /* An intersection was found! Can terminate
-           immediately if this is a shadow ray query */
-        if (shadowRay)
-          return true;
-        ray.maxt = its.t = t;
-        its.uv = Point2f(u, v);
-        its.mesh = m_mesh;
-        f = faceIndex;
-        foundIntersection = true;
-      }
-    }
-    
-    return foundIntersection;
-  }
-
-  bool intersectChild = false;
-
-  // Base version
-  for (auto child : octree->children_) {
-    if (child->bbox_.rayIntersect(ray) && rayIntersectOctree(child, ray, its, shadowRay, f))
-      intersectChild = true;
-  }
-
-  // std::vector<std::shared_ptr<Octree>> clone_children(octree->children_);
-  // std::sort(clone_children.begin(), clone_children.end(),
-  //           [&ray](auto a, auto b) {
-  //             float ta, tb;
-  //             bool intersect_a = a->bbox_.rayIntersect(ray, ta);
-  //             bool intersect_b = b->bbox_.rayIntersect(ray, tb);
-  //             return std::isless(ta, tb);
-  //           });
-  // for (auto child : clone_children) {
-  //   if (!child->bbox_.rayIntersect(ray))
-  //     break;
-
-  //   if (rayIntersectOctree(child, ray, its, shadowRay, f)) {
-  //     intersectChild = true;
-  //     break;
-  //   }
-  // }
-
-  return intersectChild;
+  auto end_time = std::chrono::system_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+	  end_time - start_time)
+	  .count();
+  std::cout << "\nAccel::build cost total time " << duration << "ms\n";
+  std::cout << accel_struct_->ToString() << std::endl;
 }
 
 bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its, bool shadowRay) const {
     bool foundIntersection = false;  // Was an intersection found so far?
     uint32_t f = (uint32_t) -1;      // Triangle index of the closest intersection
-
     Ray3f ray(ray_); /// Make a copy of the ray (we will need to update its '.maxt' value)
 
     /* Brute force search through all triangles */
-    // for (uint32_t idx = 0; idx < m_mesh->getTriangleCount(); ++idx) {
-    //     float u, v, t;
-    //     if (m_mesh->rayIntersect(idx, ray, u, v, t)) {
-    //         /* An intersection was found! Can terminate
-    //            immediately if this is a shadow ray query */
-    //         if (shadowRay)
-    //             return true;
-    //         ray.maxt = its.t = t;
-    //         its.uv = Point2f(u, v);
-    //         its.mesh = m_mesh;
-    //         f = idx;
-    //         foundIntersection = true;
-    //     }
-    // }
+//    for (auto mesh : meshes_) {
+//	  for (uint32_t idx = 0; idx < mesh->getTriangleCount(); ++idx) {
+//		float u, v, t;
+//		if (mesh->rayIntersect(idx, ray, u, v, t)) {
+//		  /* An intersection was found! Can terminate
+//			 immediately if this is a shadow ray query */
+//		  if (shadowRay)
+//			return true;
+//		  ray.maxt = its.t = t;
+//		  its.uv = Point2f(u, v);
+//		  its.mesh = mesh;
+//		  f = idx;
+//		  foundIntersection = true;
+//		}
+//	  }
+//    }
+
 
     // Octree accel.
-    foundIntersection = rayIntersectOctree(octree_, ray, its, shadowRay, f);
+    foundIntersection = accel_struct_->RayIntersect(ray, its, shadowRay, f);
     if (shadowRay)
     	return foundIntersection;
 
