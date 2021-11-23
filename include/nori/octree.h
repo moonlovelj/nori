@@ -11,8 +11,8 @@
 
 NORI_NAMESPACE_BEGIN
 
-const uint32_t kOctreeNodePrimitivesLimit = 20;
-const uint32_t kOctreeMaxDepth = 20;
+const uint32_t kOctreeNodePrimitivesLimit = 40;
+const uint32_t kOctreeMaxDepth = 10;
 
 class Octree : public AccelStruct {
 public:

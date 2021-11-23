@@ -13,7 +13,7 @@ class AreaLight : public Emitter {
 	  radiance_ = props.getColor("radiance", Color3f(1.f));
   }
 
-  Color3f lighting() const override {
+  Color3f Emission() const override {
   	  return radiance_;
   }
 

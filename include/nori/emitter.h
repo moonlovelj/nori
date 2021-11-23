@@ -22,7 +22,7 @@ public:
      * */
     EClassType getClassType() const { return EEmitter; }
 
-    virtual Color3f lighting() const = 0;
+    virtual Color3f Emission() const = 0;
 };
 
 NORI_NAMESPACE_END

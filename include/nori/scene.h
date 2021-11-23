@@ -89,6 +89,8 @@ public:
         return m_accel->getBoundingBox();
     }
 
+  	const std::vector<Mesh*> &getEmitters() const { return m_emitters;}
+
     /**
      * \brief Inherited from \ref NoriObject::activate()
      *
@@ -106,6 +108,7 @@ public:
     EClassType getClassType() const { return EScene; }
 private:
     std::vector<Mesh *> m_meshes;
+    std::vector<Mesh *> m_emitters;
     Integrator *m_integrator = nullptr;
     Sampler *m_sampler = nullptr;
     Camera *m_camera = nullptr;

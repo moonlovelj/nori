@@ -18,15 +18,15 @@ void Accel::addMesh(Mesh *mesh) {
 }
 
 void Accel::build() {
+  std::cout <<"Building accel..." << std::endl;
   auto start_time = std::chrono::system_clock::now();
   accel_struct_ =
 	  std::make_shared<Octree>(this->meshes_);
-
   auto end_time = std::chrono::system_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
 	  end_time - start_time)
 	  .count();
-  std::cout << "\nAccel::build cost total time " << duration << "ms\n";
+  std::cout << "\nBuilding accel success, cost total time " << duration << "ms\n";
   std::cout << accel_struct_->ToString() << std::endl;
 }
 
