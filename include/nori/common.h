@@ -11,6 +11,7 @@
 #pragma warning(disable : 4127 4702 4100 4515 4800 4146 4512)
 #define WIN32_LEAN_AND_MEAN     /* Don't ever include MFC on Windows */
 #define NOMINMAX                /* Don't override min/max */
+#define _USE_MATH_DEFINES
 #endif
 
 /* Include the basics needed by any Nori file */

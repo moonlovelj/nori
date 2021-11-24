@@ -311,7 +311,7 @@ Vector3f refract(Vector3f wi, float extIOR, float intIOR) {
   if (sinThetaTSqr > 1.0f) return Vector3f(0.0f);;  /* Total internal reflection! */
 
   auto cosThetaTSqr = 1.f - sinThetaTSqr;
-  return eta * wi + (-eta * cosThetaI - sqrtf(cosThetaTSqr)) * N;
+  return -eta * wi + (eta * cosThetaI - sqrtf(cosThetaTSqr)) * N;
 }
 
 NORI_NAMESPACE_END
