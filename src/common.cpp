@@ -5,6 +5,7 @@
 */
 
 #include <nori/object.h>
+#include <nori/frame.h>
 #include <Eigen/Geometry>
 #include <Eigen/LU>
 #include <filesystem/resolver.h>
@@ -285,6 +286,32 @@ float fresnel(float cosThetaI, float extIOR, float intIOR) {
              / (etaT * cosThetaI + etaI * cosThetaT);
 
     return (Rs * Rs + Rp * Rp) / 2.0f;
+}
+
+Vector3f refract(Vector3f wi, float extIOR, float intIOR) {
+  float etaI = extIOR, etaT = intIOR;
+
+  if (extIOR == intIOR) return Vector3f(0.0f);
+
+  auto cosThetaI = Frame::cosTheta(wi);
+  /* Swap the indices of refraction if the interaction starts
+	 at the inside of the object */
+  auto N =  Vector3f(0,0,1);
+  if (cosThetaI < 0.0f) {
+	std::swap(etaI, etaT);
+	cosThetaI = -cosThetaI;
+	N = -N;
+  }
+
+  /* Using Snell's law, calculate the squared sine of the
+	 angle between the normal and the transmitted ray */
+  float eta = etaI / etaT,
+	  sinThetaTSqr = eta*eta * (1-cosThetaI*cosThetaI);
+
+  if (sinThetaTSqr > 1.0f) return Vector3f(0.0f);;  /* Total internal reflection! */
+
+  auto cosThetaTSqr = 1.f - sinThetaTSqr;
+  return eta * wi + (-eta * cosThetaI - sqrtf(cosThetaTSqr)) * N;
 }
 
 NORI_NAMESPACE_END

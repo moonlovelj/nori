@@ -6,6 +6,7 @@
 
 #include <nori/bsdf.h>
 #include <nori/frame.h>
+#include <nori/warp.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -31,7 +32,31 @@ public:
     }
 
     Color3f sample(BSDFQueryRecord &bRec, const Point2f &sample) const {
-        throw NoriException("Unimplemented!");
+	  bRec.measure = EDiscrete;
+	  auto cosThetaI = Frame::cosTheta(bRec.wi);
+	  if (cosThetaI < 0) {
+		bRec.eta = m_intIOR / m_extIOR;
+	  } else {
+		bRec.eta = m_extIOR / m_intIOR;
+	  }
+	  auto reflectance = fresnel(cosThetaI, m_extIOR, m_intIOR);
+	  if (sample.x() <= reflectance) {
+//		auto reflect = Vector3f(-bRec.wi.x(),-bRec.wi.y(),bRec.wi.z());
+//		auto wo = Warp::squareToCosineHemisphere(sample);
+//		auto cosThetaOAndR = Frame::cosTheta(wo);
+//		auto pdf = Warp::squareToCosineHemispherePdf(wo);
+//		Frame shReflect(reflect);
+//		Frame shNormal(Vector3f(0,0,1));
+//		wo = shReflect.toLocal(shReflect.toWorld(wo));
+//		bRec.wo = wo;
+//		auto cosThetaO = cosThetaI < 0 ? -Frame::cosTheta(bRec.wo) : Frame::cosTheta(bRec.wo);
+//		return 1.5 * M_PI * cosThetaOAndR * std::max(0.f, cosThetaO) / pdf / reflectance;
+		bRec.wo = Vector3f(-bRec.wi.x(),-bRec.wi.y(),bRec.wi.z());
+		return std::fabs(Frame::cosTheta(bRec.wo)) / reflectance;
+	  } else {
+		bRec.wo = refract(bRec.wi, m_extIOR, m_intIOR);
+		return std::fabs(Frame::cosTheta(bRec.wo)) / (1-reflectance);
+	  }
     }
 
     std::string toString() const {

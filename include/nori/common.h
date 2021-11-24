@@ -246,6 +246,20 @@ extern Point2f sphericalCoordinates(const Vector3f &dir);
 extern float fresnel(float cosThetaI, float extIOR, float intIOR);
 
 /**
+ * \brief Calculates the unpolarized fresnel refract vector for a
+ * dielectric material. Handles incidence from either side (i.e.
+ * \code cosThetaI<0 is allowed).
+ *
+ * \param cosThetaI
+ *      Cosine of the angle between the normal and the incident ray
+ * \param extIOR
+ *      Refractive index of the side that contains the surface normal
+ * \param intIOR
+ *      Refractive index of the interior
+ */
+extern Vector3f refract(Vector3f wi, float extIOR, float intIOR);
+
+/**
  * \brief Return the global file resolver instance
  *
  * This class is used to locate resource files (e.g. mesh or

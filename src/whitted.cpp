@@ -24,6 +24,19 @@ public:
 
 	Color3f l_e = its.mesh->getEmission(its, -ray.d);
 	Color3f l_dir(0);
+	auto bsdf = its.mesh->getBSDF();
+	if (!bsdf->isDiffuse()) {
+	  if (sampler->next1D() > 0.95f) return l_e;
+
+	  BSDFQueryRecord bsdf_query_record(its.shFrame.toLocal(-ray.d));
+	  auto sampleBSDF = bsdf->sample(bsdf_query_record, sampler->next2D()) / 0.95f;
+	  auto newRay = Ray3f(its.p, its.shFrame.toWorld(bsdf_query_record.wo).normalized());
+	  newRay.mint = Epsilon;
+	  auto next_sample = Li(scene, sampler, newRay);
+	  l_dir = sampleBSDF * next_sample;
+	  return l_e + l_dir;
+	}
+
 	auto lights = scene->getEmitters();
 	Point3f point_on_light;
 	Vector3f normal_from_light;
