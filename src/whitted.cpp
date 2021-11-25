@@ -29,7 +29,7 @@ public:
 	  if (sampler->next1D() > 0.95f) return l_e;
 
 	  BSDFQueryRecord bsdf_query_record(its.shFrame.toLocal(-ray.d));
-	  auto sampleBSDF = bsdf->sample(bsdf_query_record, sampler->next2D()) / 0.95f;
+	  Color3f sampleBSDF = bsdf->sample(bsdf_query_record, sampler->next2D()) / 0.95f;
 	  auto newRay = Ray3f(its.p, its.shFrame.toWorld(bsdf_query_record.wo).normalized());
 	  newRay.mint = Epsilon;
 	  auto next_sample = Li(scene, sampler, newRay);

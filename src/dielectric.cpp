@@ -52,10 +52,10 @@ public:
 //		auto cosThetaO = cosThetaI < 0 ? -Frame::cosTheta(bRec.wo) : Frame::cosTheta(bRec.wo);
 //		return 1.5 * M_PI * cosThetaOAndR * std::max(0.f, cosThetaO) / pdf / reflectance;
 		bRec.wo = Vector3f(-bRec.wi.x(),-bRec.wi.y(),bRec.wi.z());
-		return std::fabs(Frame::cosTheta(bRec.wo)) / reflectance;
+		return Color3f(1);
 	  } else {
 		bRec.wo = refract(bRec.wi, m_extIOR, m_intIOR);
-		return std::fabs(Frame::cosTheta(bRec.wo)) / (1-reflectance);
+		return Color3f(1);
 	  }
     }
 

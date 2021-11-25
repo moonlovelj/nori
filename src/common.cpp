@@ -296,7 +296,7 @@ Vector3f refract(Vector3f wi, float extIOR, float intIOR) {
   auto cosThetaI = Frame::cosTheta(wi);
   /* Swap the indices of refraction if the interaction starts
 	 at the inside of the object */
-  auto N =  Vector3f(0,0,1);
+  Vector3f N(0, 0, 1);
   if (cosThetaI < 0.0f) {
 	std::swap(etaI, etaT);
 	cosThetaI = -cosThetaI;
