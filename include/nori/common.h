@@ -232,6 +232,9 @@ extern Vector3f sphericalDirection(float theta, float phi);
 /// Compute a direction for the given coordinates in spherical coordinates
 extern Point2f sphericalCoordinates(const Vector3f &dir);
 
+/// Compute a mirror direction of a given normal
+extern Vector3f reflect(const Vector3f &wi, const Vector3f &normal);
+
 /**
  * \brief Calculates the unpolarized fresnel reflection coefficient for a 
  * dielectric material. Handles incidence from either side (i.e.

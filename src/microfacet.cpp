@@ -38,23 +38,58 @@ public:
 
     /// Evaluate the BRDF for the given pair of directions
     Color3f eval(const BSDFQueryRecord &bRec) const {
-    	throw NoriException("MicrofacetBRDF::eval(): not implemented!");
+    	if (Frame::cosTheta(bRec.wi) < 0) return Color3f(0);
+
+    	Vector3f wh = (bRec.wi + bRec.wo).normalized();
+    	float D = Warp::squareToBeckmannPdf(wh, m_alpha);
+    	float F = fresnel(wh.dot(bRec.wi), m_extIOR, m_intIOR);
+		float G = GTerm(bRec.wi, wh) * GTerm(bRec.wo, wh);
+		return m_kd * M_1_PI + Color3f(
+			m_ks * D * F * G / (4 * Frame::cosTheta(bRec.wi) * Frame::cosTheta(bRec.wo) * Frame::cosTheta(wh)));
     }
 
     /// Evaluate the sampling density of \ref sample() wrt. solid angles
-    float pdf(const BSDFQueryRecord &bRec) const {
-    	throw NoriException("MicrofacetBRDF::pdf(): not implemented!");
-    }
+	float pdf(const BSDFQueryRecord &bRec) const {
+	  if (bRec.measure != ESolidAngle) {
+		return 0.f;
+	  }
+//
+	  Vector3f wh = (bRec.wi + bRec.wo).normalized();
+//	  if (bRec.wi.dot(wh) / Frame::cosTheta(bRec.wi) <= 0 ||
+//		  bRec.wo.dot(wh) / Frame::cosTheta(bRec.wo) <= 0) {
+//		return 0.f;
+//	  }
+
+	  if (Frame::cosTheta(bRec.wi) <= 0 ||
+		  Frame::cosTheta(bRec.wo) <= 0) {
+		return 0.f;
+	  }
+
+	  float D = Warp::squareToBeckmannPdf(wh, m_alpha);
+	  return m_ks * D / (4 * wh.dot(bRec.wo)) + (1 - m_ks) * Frame::cosTheta(bRec.wo) * M_1_PI;
+	}
 
     /// Sample the BRDF
     Color3f sample(BSDFQueryRecord &bRec, const Point2f &_sample) const {
-    	throw NoriException("MicrofacetBRDF::sample(): not implemented!");
-
+	  	if (Frame::cosTheta(bRec.wi) <= 0)
+			return Color3f(0.0f);
         // Note: Once you have implemented the part that computes the scattered
         // direction, the last part of this function should simply return the
         // BRDF value divided by the solid angle density and multiplied by the
         // cosine factor from the reflection equation, i.e.
         // return eval(bRec) * Frame::cosTheta(bRec.wo) / pdf(bRec);
+	    bRec.measure = ESolidAngle;
+        if (_sample.x() < m_ks) {
+		  Point2f reuseSample(_sample.x() / m_ks, _sample.y());
+		  Vector3f h = Warp::squareToBeckmann(reuseSample, m_alpha);
+		  bRec.wo = reflect(bRec.wi, h);
+		  if (Frame::cosTheta(bRec.wo) <= 0) return Color3f(0);
+        } else {
+          //diffuse
+		  Point2f reuseSample((_sample.x()-m_ks)/(1-m_ks), _sample.y());
+		  bRec.wo = Warp::squareToCosineHemisphere(reuseSample);
+        }
+	  	return eval(bRec) * Frame::cosTheta(bRec.wo) / pdf(bRec);
     }
 
     bool isDiffuse() const {
@@ -81,6 +116,16 @@ public:
         );
     }
 private:
+  	float GTerm(const Vector3f &wv, const Vector3f &wh) const {
+		float cosThetaVN = Frame::cosTheta(wv);
+		float sinThetaVN = std::sqrtf(1 - cosThetaVN * cosThetaVN);
+		float tanThetaVN = sinThetaVN / cosThetaVN;
+		float b = 1.f / (m_alpha * tanThetaVN);
+		float c = wv.dot(wh) / cosThetaVN;
+		float Xc = c > 0 ? 1 : 0;
+		return Xc * (b < 1.6f ? (3.535f*b+2.181f*b*b)/(1+2.276f*b+2.577*b*b):1);
+    }
+
     float m_alpha;
     float m_intIOR, m_extIOR;
     float m_ks;

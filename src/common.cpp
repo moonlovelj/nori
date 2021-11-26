@@ -246,6 +246,10 @@ Point2f sphericalCoordinates(const Vector3f &v) {
     return result;
 }
 
+extern Vector3f reflect(const Vector3f &wi, const Vector3f &normal) {
+	return 2 * wi.dot(normal)*normal - wi;
+}
+
 void coordinateSystem(const Vector3f &a, Vector3f &b, Vector3f &c) {
     if (std::abs(a.x()) > std::abs(a.y())) {
         float invLen = 1.0f / std::sqrt(a.x() * a.x() + a.z() * a.z());
