@@ -96,7 +96,8 @@ add_executable(nori
   src/ao.cpp
   src/arealight.cpp
   src/whitted.cpp
-  src/accelstruct.cpp)
+  src/accelstruct.cpp
+  src/path_mats.cpp)
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
 
