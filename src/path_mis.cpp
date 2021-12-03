@@ -15,11 +15,31 @@ public:
   }
 
   Color3f Li(const Scene *scene, Sampler *sampler, const Ray3f &ray) const {
-    return Color3f(0);
+    /// 先选择一种采样策略
+	Intersection its;
+	if (!scene->rayIntersect(ray, its)) {
+	  return Color3f(0);
+	}
+
+	float nLight, nBRDF;
+	if (its.mesh->getBSDF()->isDiffuse()) {
+	  nLight = 0.5f;
+	  nBRDF = 0.5f;
+	} else {
+	  nLight = 0;
+	  nBRDF = 1;
+	}
+
+	return Color3f(0);
   }
 
   std::string toString() const {
 	return "PathMultipleImportanceSamplingIntegrator[]";
+  }
+
+private:
+  float BalanceHeuristic(int nf, float fPdf, int ng, float gPdf) const {
+	return (nf * fPdf) / (nf * fPdf + ng * gPdf);
   }
 };
 

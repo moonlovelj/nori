@@ -44,10 +44,10 @@ private:
 	  Point3f point_on_light;
 	  Vector3f normal_from_light;
 	  float pdf;
-	  auto l_i = lights[std::rand() % lights.size()]->SampleLight(point_on_light, normal_from_light, pdf, sampler->next2D());
-	  auto dis = point_on_light - its.p;
-	  auto wi = dis.normalized();
-	  auto shadow_ray = Ray3f(its.p, wi);
+	  Color3f l_i = lights[std::rand() % lights.size()]->SampleLight(point_on_light, normal_from_light, pdf, sampler->next2D());
+	  Vector3f dis = point_on_light - its.p;
+	  Vector3f wi = dis.normalized();
+	  Ray3f shadow_ray = Ray3f(its.p, wi);
 	  shadow_ray.mint = Epsilon;
 	  shadow_ray.maxt = dis.norm() - Epsilon;
 	  if (!scene->rayIntersect(shadow_ray)) {
