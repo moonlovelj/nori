@@ -11,27 +11,27 @@ NORI_NAMESPACE_BEGIN
 
 class PathMaterialSamplingIntegrator : public Integrator {
 public:
-  PathMaterialSamplingIntegrator(const PropertyList &props) {
-	/* No parameters this time */
-  }
+    PathMaterialSamplingIntegrator(const PropertyList &props) {
+        /* No parameters this time */
+    }
 
-  Color3f Li(const Scene *scene, Sampler *sampler, const Ray3f &ray) const {
-	/* Find the surface that is visible in the requested direction */
-	Intersection its;
-	if (!scene->rayIntersect(ray, its)) {
-	  return Color3f(0);
-	}
+    Color3f Li(const Scene *scene, Sampler *sampler, const Ray3f &ray) const {
+        /* Find the surface that is visible in the requested direction */
+        Intersection its;
+        if (!scene->rayIntersect(ray, its)) {
+            return Color3f(0);
+        }
 
-	Color3f sampleColor = its.mesh->getEmission(its, -ray.d);
-	if (sampler->next1D() > 0.95f) {
-	  return sampleColor;
-	}
+        Color3f sampleColor = its.mesh->getEmission(its, -ray.d);
+        if (sampler->next1D() > 0.95f) {
+            return sampleColor;
+        }
 
-	BSDFQueryRecord bsdfRec(its.shFrame.toLocal(-ray.d));
-	Color3f L = its.mesh->getBSDF()->sample(bsdfRec, sampler->next2D());
-	Ray3f new_ray(its.p, its.shFrame.toWorld(bsdfRec.wo));
-	new_ray.mint = Epsilon;
-	return sampleColor + Li(scene, sampler, new_ray) * L / 0.95f;
+        BSDFQueryRecord bsdfRec(its.shFrame.toLocal(-ray.d));
+        Color3f L = its.mesh->getBSDF()->sample(bsdfRec, sampler->next2D());
+        Ray3f new_ray(its.p, its.shFrame.toWorld(bsdfRec.wo));
+        new_ray.mint = Epsilon;
+        return sampleColor + Li(scene, sampler, new_ray) * L / 0.95f;
 
 //	Color3f L(0.f);
 //	Ray3f sampleRay(ray);
@@ -53,11 +53,11 @@ public:
 //	  Color3f sampleColor = its.mesh->getEmission(its, -sampleRay.d);
 //	}
 //	return L;
-  }
+    }
 
-  std::string toString() const {
-	return "PathMaterialSamplingIntegrator[]";
-  }
+    std::string toString() const {
+        return "PathMaterialSamplingIntegrator[]";
+    }
 };
 
 NORI_REGISTER_CLASS(PathMaterialSamplingIntegrator, "path_mats");

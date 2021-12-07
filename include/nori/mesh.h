@@ -137,8 +137,6 @@ public:
     /// Return a emission at its
     Color3f getEmission(const Intersection& its, const Vector3f &wr) const;
 
-    Color3f SampleLight(Point3f &point, Vector3f &normal, float &pdf, const Point2f &sample) const;
-
     /// Return a pointer to the BSDF associated with this mesh
     const BSDF *getBSDF() const { return m_bsdf; }
 
@@ -168,7 +166,7 @@ protected:
     MatrixXf      m_UV;                  ///< Vertex texture coordinates
     MatrixXu      m_F;                   ///< Faces
     BSDF         *m_bsdf = nullptr;      ///< BSDF of the surface
-    Emitter    *m_emitter = nullptr;     ///< Associated emitter, if any
+    Emitter      *m_emitter = nullptr;   ///< Associated emitter, if any
     BoundingBox3f m_bbox;                ///< Bounding box of the mesh
     std::shared_ptr<DiscretePDF> m_dpdf = nullptr;/// for sampling point from mesh
 };

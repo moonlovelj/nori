@@ -6,6 +6,7 @@
 #include <nori/scene.h>
 #include <nori/bsdf.h>
 #include <nori/sampler.h>
+#include <nori/emitter.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -41,25 +42,19 @@ private:
 	Color3f L_dir(0);
 	if(its.mesh->getBSDF()->isDiffuse()) {
 	  auto lights = scene->getEmitters();
-	  Point3f point_on_light;
-	  Vector3f normal_from_light;
-	  float pdf;
-	  Color3f l_i = lights[std::rand() % lights.size()]->SampleLight(point_on_light, normal_from_light, pdf, sampler->next2D());
-	  Vector3f dis = point_on_light - its.p;
-	  Vector3f wi = dis.normalized();
-	  Ray3f shadow_ray = Ray3f(its.p, wi);
-	  shadow_ray.mint = Epsilon;
-	  shadow_ray.maxt = dis.norm() - Epsilon;
-	  if (!scene->rayIntersect(shadow_ray)) {
-		BSDFQueryRecord bsdf_record(its.shFrame.toLocal(wi), its.shFrame.toLocal(-ray.d), ESolidAngle);
-		L_dir = l_i * its.mesh->getBSDF()->eval(bsdf_record) * std::max(0.f, its.shFrame.n.dot(wi))
-			* std::max(0.f, normal_from_light.dot(-wi)) / dis.squaredNorm() / pdf * lights.size() / 0.95f;
+	  Emitter *pLight = lights[std::rand() % lights.size()]->getEmitter();
+	  EmitterQueryRecord eRec;
+	  Color3f l_i = pLight->sample(its.p, eRec, sampler->next2D());
+	  Vector3f wi = (eRec.point - its.p).normalized();
+	  if (scene->illuminatedEachOther(its.p, eRec.point)) {
+		BSDFQueryRecord sampleLightRecord(its.shFrame.toLocal(wi), its.shFrame.toLocal(-ray.d), ESolidAngle);
+		L_dir = l_i * its.mesh->getBSDF()->eval(sampleLightRecord) * std::max(0.f, its.shFrame.n.dot(wi)) * lights.size() / 0.95f;
 	  }
 	}
 
-	BSDFQueryRecord bsdfRec(its.shFrame.toLocal(-ray.d));
-	Color3f L = its.mesh->getBSDF()->sample(bsdfRec, sampler->next2D());
-	Ray3f new_ray(its.p, its.shFrame.toWorld(bsdfRec.wo));
+	BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d));
+	Color3f L = its.mesh->getBSDF()->sample(sampleBRDFRecord, sampler->next2D());
+	Ray3f new_ray(its.p, its.shFrame.toWorld(sampleBRDFRecord.wo));
 	new_ray.mint = Epsilon;
 	Color3f l_ind = Li(scene, sampler, new_ray, its.mesh->getBSDF()->isDiffuse() ? false : true) * L / 0.95f;
 	return L_e + L_dir + l_ind;

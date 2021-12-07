@@ -91,6 +91,8 @@ public:
 
   	const std::vector<Mesh*> &getEmitters() const { return m_emitters;}
 
+  	bool illuminatedEachOther(const Point3f &p0, const Point3f &p1) const;
+
     /**
      * \brief Inherited from \ref NoriObject::activate()
      *

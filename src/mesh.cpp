@@ -27,6 +27,10 @@ void Mesh::activate() {
             NoriObjectFactory::createInstance("diffuse", PropertyList()));
     }
 
+    if (m_emitter) {
+        m_emitter->build();
+    }
+
     auto face_count = this->getTriangleCount();
   	m_dpdf = std::make_shared<DiscretePDF>(face_count);
 	for (uint32_t face_index = 0; face_index < face_count; ++face_index) {
@@ -123,33 +127,7 @@ void Mesh::addChild(NoriObject *obj) {
 Color3f Mesh::getEmission(const Intersection& its, const Vector3f &wr) const {
 	if (!this->isEmitter()) return Color3f(0);
 	if (its.shFrame.n.dot(wr) < 0) return Color3f(0);
-	return this->getEmitter()->Emission();
-}
-
-Color3f Mesh::SampleLight(Point3f &point, Vector3f &normal, float &pdf, const Point2f &sample) const {
-  	float eps1 = sample.x();
-  	float esp2 = sample.y();
-	auto face_index = m_dpdf->sampleReuse(eps1);
-	auto alpha = 1.f - std::sqrtf(1.f-eps1);
-	auto beta = esp2 * std::sqrtf(1.f-eps1);
-	auto gamma = 1.f - alpha - beta;
-	auto i0 = m_F(0, face_index);
-	auto i1 = m_F(1, face_index);
-	auto i2 = m_F(2, face_index);
-	Point3f p0 = m_V.col(i0);
-	Point3f p1 = m_V.col(i1);
-	Point3f p2 = m_V.col(i2);
-	point = alpha * p0 + beta * p1 + gamma * p2;
-	if (m_N.size() > 0) {
-	  normal = (alpha * m_N.col(i0) +
-		  beta * m_N.col(i1) +
-		  gamma * m_N.col(i2)).normalized();
-	} else {
-	  normal = (p1 - p0).cross(p2 - p0).normalized();
-	}
-
-    pdf = m_dpdf->getNormalization();
-	return this->getEmitter()->Emission();
+	return this->getEmitter()->emission();
 }
 
 std::string Mesh::toString() const {

@@ -110,5 +110,13 @@ std::string Scene::toString() const {
     );
 }
 
+bool Scene::illuminatedEachOther(const Point3f &p0, const Point3f &p1) const {
+    Vector3f dir = p1 - p0;
+    Ray3f ray(p0, dir.normalized());
+    ray.mint = Epsilon;
+    ray.maxt = dir.norm() - Epsilon;
+    return !this->rayIntersect(ray);
+}
+
 NORI_REGISTER_CLASS(Scene, "scene");
 NORI_NAMESPACE_END
