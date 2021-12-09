@@ -16,6 +16,10 @@ struct EmitterQueryRecord {
     Point3f point;
     /// Normal in world space
     Vector3f normal;
+
+    EmitterQueryRecord() {}
+
+    EmitterQueryRecord(const Point3f &p, const Vector3f &n) : point(p), normal(n) {}
 };
 
 /**
