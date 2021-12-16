@@ -54,7 +54,7 @@ public:
 		bRec.wo = Vector3f(-bRec.wi.x(),-bRec.wi.y(),bRec.wi.z());
 		return Color3f(1);
 	  } else {
-		bRec.wo = refract(bRec.wi, m_extIOR, m_intIOR);
+		bRec.wo = refract(Vector3f(0,0,1), bRec.wi, m_extIOR, m_intIOR);
 		return Color3f(1);
 	  }
     }

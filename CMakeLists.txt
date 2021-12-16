@@ -99,7 +99,8 @@ add_executable(nori
   src/accelstruct.cpp
   src/path_mats.cpp
   src/path_ems.cpp
-  src/path_mis.cpp)
+  src/path_mis.cpp
+  src/microfacetdielectric.cpp)
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
 

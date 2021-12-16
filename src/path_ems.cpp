@@ -47,7 +47,7 @@ private:
 	  Color3f l_i = pLight->sample(its.p, eRec, sampler->next2D());
 	  Vector3f wi = (eRec.point - its.p).normalized();
 	  if (scene->illuminatedEachOther(its.p, eRec.point)) {
-		BSDFQueryRecord sampleLightRecord(its.shFrame.toLocal(wi), its.shFrame.toLocal(-ray.d), ESolidAngle);
+		BSDFQueryRecord sampleLightRecord(its.shFrame.toLocal(-ray.d), its.shFrame.toLocal(wi),  ESolidAngle);
 		L_dir = l_i * its.mesh->getBSDF()->eval(sampleLightRecord) * std::max(0.f, its.shFrame.n.dot(wi)) * lights.size() / 0.95f;
 	  }
 	}

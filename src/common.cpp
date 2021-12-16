@@ -292,15 +292,15 @@ float fresnel(float cosThetaI, float extIOR, float intIOR) {
     return (Rs * Rs + Rp * Rp) / 2.0f;
 }
 
-Vector3f refract(Vector3f wi, float extIOR, float intIOR) {
+Vector3f refract(const Vector3f &n, const Vector3f &wi, float extIOR, float intIOR) {
   float etaI = extIOR, etaT = intIOR;
 
   if (extIOR == intIOR) return Vector3f(0.0f);
 
-  auto cosThetaI = Frame::cosTheta(wi);
+  auto cosThetaI = n.dot(wi);
   /* Swap the indices of refraction if the interaction starts
 	 at the inside of the object */
-  Vector3f N(0, 0, 1);
+  Vector3f N = n;
   if (cosThetaI < 0.0f) {
 	std::swap(etaI, etaT);
 	cosThetaI = -cosThetaI;
@@ -309,13 +309,17 @@ Vector3f refract(Vector3f wi, float extIOR, float intIOR) {
 
   /* Using Snell's law, calculate the squared sine of the
 	 angle between the normal and the transmitted ray */
-  float eta = etaI / etaT,
-	  sinThetaTSqr = eta*eta * (1-cosThetaI*cosThetaI);
+  float eta = etaI / etaT;
+  float sinThetaTSqr = eta*eta * (1-cosThetaI*cosThetaI);
 
   if (sinThetaTSqr > 1.0f) return Vector3f(0.0f);;  /* Total internal reflection! */
 
   auto cosThetaTSqr = 1.f - sinThetaTSqr;
   return -eta * wi + (eta * cosThetaI - sqrtf(cosThetaTSqr)) * N;
+}
+
+bool sameHemisphere(const Vector3f &w, const Vector3f &wp) {
+    return w.z() * wp.z() > 0;
 }
 
 NORI_NAMESPACE_END

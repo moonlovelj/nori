@@ -253,16 +253,20 @@ extern float fresnel(float cosThetaI, float extIOR, float intIOR);
  * \brief Calculates the unpolarized fresnel refract vector for a
  * dielectric material. Handles incidence from either side (i.e.
  * \code cosThetaI<0 is allowed).
- *
- * \param cosThetaI
- *      Cosine of the angle between the normal and the incident ray
+ * \param n
+ *      Macrosurface normal
+ * \param m
+ *      Microsurface normal
+ * \param wi
+ *      The incident ray
  * \param extIOR
  *      Refractive index of the side that contains the surface normal
  * \param intIOR
  *      Refractive index of the interior
  */
-extern Vector3f refract(Vector3f wi, float extIOR, float intIOR);
+extern Vector3f refract(const Vector3f &n, const Vector3f &wi, float extIOR, float intIOR);
 
+extern bool sameHemisphere(const Vector3f &w, const Vector3f &wp);
 /**
  * \brief Return the global file resolver instance
  *
