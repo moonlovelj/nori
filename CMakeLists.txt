@@ -100,7 +100,9 @@ add_executable(nori
   src/path_mats.cpp
   src/path_ems.cpp
   src/path_mis.cpp
-  src/microfacetdielectric.cpp src/microfacettransmission.cpp)
+  src/microfacetdielectric.cpp
+  src/microfacettransmission.cpp
+  src/microfacetreflection.cpp)
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
 

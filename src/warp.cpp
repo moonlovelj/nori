@@ -87,8 +87,9 @@ float Warp::squareToBeckmannPdf(const Vector3f &m, float alpha) {
     auto cos_theta2 = cos_theta * cos_theta;
     auto tan_theta2 = (1-cos_theta2)/cos_theta2;
     auto alpha2 = alpha * alpha;
-    float cos_theta3 = std::max(1e-20f, cos_theta2*cos_theta);
-    return std::expf(-tan_theta2/alpha2) / (M_PI * alpha2*cos_theta3);
+    float cos_theta3 = cos_theta2*cos_theta;
+    float pdf = std::expf(-tan_theta2/alpha2) / (M_PI * alpha2*cos_theta3);
+    return pdf > 1e-20 ? pdf : 0;
 }
 
 NORI_NAMESPACE_END

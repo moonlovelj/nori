@@ -29,7 +29,7 @@ public:
             return Color3f(0);
         }
 
-        return fReflect(bRec.wi, bRec.wo) + fRefract(bRec.wi, bRec.wo);
+        return Color3f(evalR(bRec.wi, bRec.wo) + evalT(bRec.wi, bRec.wo));
     }
 
     /// Evaluate the sampling density of \ref sample() wrt. solid angles
@@ -37,8 +37,9 @@ public:
         if (bRec.measure != ESolidAngle) {
             return 0.f;
         }
+        if (Frame::cosTheta(bRec.wi) == 0.f) return 0;
 
-        return pdfReflect(bRec.wi, bRec.wo) + pdfRefract(bRec.wi, bRec.wo);
+        return pdfR(bRec.wi, bRec.wo) + pdfT(bRec.wi, bRec.wo);
     }
 
     /// Sample the BRDF
@@ -48,12 +49,15 @@ public:
         // BRDF value divided by the solid angle density and multiplied by the
         // cosine factor from the reflection equation, i.e.
         // return eval(bRec) * Frame::cosTheta(bRec.wo) / pdf(bRec);
-        bRec.measure = ESolidAngle;
 
-        Vector3f m = Warp::squareToBeckmann(_sample, adjustAlpha(bRec.wi));
+
+        if (Frame::cosTheta(bRec.wi) == 0.f) return Color3f(0);
+
+        Vector3f m = Warp::squareToBeckmann(_sample, scaleAlpha(bRec.wi));
         if ((Frame::cosTheta(bRec.wi) > 0.f ? m : -m).dot(bRec.wi) < 0){
             return Color3f(0);
         }
+        if (Warp::squareToBeckmannPdf(m, scaleAlpha(bRec.wi)) == 0.f) return Color3f(0);
 
         float F = fresnel(m.dot(bRec.wi), m_extIOR, m_intIOR);
         std::srand(std::time(nullptr)); // use current time as seed for random generator
@@ -61,22 +65,19 @@ public:
         if (randomVariable <= F) {
             // reflect
             bRec.wo = reflect(bRec.wi, m);
+            if (!sameHemisphere(bRec.wi, bRec.wo)) return Color3f(0);
         } else {
             //refract
             bRec.wo = refract(m, bRec.wi, m_extIOR, m_intIOR);
+            if (sameHemisphere(bRec.wi, bRec.wo)) return Color3f(0);
+            if ((bRec.wo.array() == 0).all()) return Color3f(0);
         }
 
+        bRec.measure = ESolidAngle;
         float p = pdf(bRec);
-        if (p == 0.f) return Color3f(0);
+        if (p == 0) return Color3f(0);
 
-        Color3f weight = eval(bRec) * std::fabsf(Frame::cosTheta(bRec.wo)) / p;
-        if (randomVariable <= F) {
-            //std::cout << "r : " << weight << std::endl;
-        } else {
-           // std::cout << "t : " << weight << std::endl;
-        }
-        return weight;
-        //return eval(bRec) * std::fabsf(Frame::cosTheta(bRec.wo)) / p;
+        return eval(bRec) * std::fabsf(Frame::cosTheta(bRec.wo)) / p;
     }
 
     bool isDiffuse() const {
@@ -99,24 +100,28 @@ public:
         );
     }
 private:
-    float GTerm(const Vector3f &wv, const Vector3f &wh) const {
+    float G1(const Vector3f &wv, const Vector3f &wh, float alpha) const {
         float cosThetaVN = Frame::cosTheta(wv);
         if (cosThetaVN == 0.f) return 0;
         float sinThetaVN = std::sqrtf(1 - cosThetaVN * cosThetaVN);
         float tanThetaVN = std::fabsf(sinThetaVN / cosThetaVN);
         if (tanThetaVN == 0.f) return 0;
 
-        float b = 1.f / (m_alpha * tanThetaVN);
-        float c = wv.dot(wh) * cosThetaVN;
-        float Xc = c > 0 ? 1 : 0;
-        return Xc * (b < 1.6f ? (3.535f*b+2.181f*b*b)/(1+2.276f*b+2.577*b*b):1);
+        float b = 1.f / (alpha * tanThetaVN);
+        if (wv.dot(wh) * cosThetaVN < 0) return 0;
+        return (b < 1.6f ? (3.535f*b+2.181f*b*b)/(1+2.276f*b+2.577*b*b):1);
     }
 
     float G(const Vector3f &wi, const Vector3f &wo, const Vector3f &wh) const {
-        return GTerm(wi, wh) * GTerm(wo, wh);
+        float alpha = scaleAlpha(wi);
+        return G1(wi, wh, alpha) * G1(wo, wh, alpha);
     }
 
-    float fReflect(const Vector3f &wi, const Vector3f &wo) const {
+    float scaleAlpha(const Vector3f &wi) const {
+        return (1.2f-.2f*sqrtf(Frame::absCosTheta(wi))) * m_alpha;
+    }
+
+    float evalR(const Vector3f &wi, const Vector3f &wo) const {
         if (!sameHemisphere(wi, wo)) return 0;
 
         float absCosThetaI = std::fabsf(Frame::cosTheta(wi));
@@ -124,78 +129,62 @@ private:
         if (absCosThetaI == 0.f || absCosThetaO == 0.f) return 0;
 
         Vector3f wh = (wi + wo).normalized();
+        if (wh.z() < 0) wh = -wh;
         float absCosThetaH = std::fabsf(Frame::cosTheta(wh));
         if (absCosThetaH == 0.f) return 0;
 
-        float D = Warp::squareToBeckmannPdf(wh.z() > 0.f ? wh : -wh, m_alpha);
-        float F = fresnel((wh.z() > 0.f ? wh : -wh).dot(wi), m_extIOR, m_intIOR);
-        //float G = GTerm(wi, hr) * GTerm(wo, hr);
-        return D * F * G(wi, wo, wh.z() > 0.f ? wh : -wh) / (4 * absCosThetaI * absCosThetaO * absCosThetaH);
+        float D = Warp::squareToBeckmannPdf(wh, scaleAlpha(wi));
+        float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
+        return D * F * G(wi, wo, wh) / (4 * absCosThetaI * absCosThetaO * absCosThetaH);
     }
 
 
-    float pdfReflect(const Vector3f &wi, const Vector3f &wo) const {
+    float pdfR(const Vector3f &wi, const Vector3f &wo) const {
         if (!sameHemisphere(wo, wi)) return 0;
         Vector3f wh = (wo + wi).normalized();
-        float F = fresnel((wh.z() > 0 ? wh : -wh).dot(wi), m_extIOR, m_intIOR);
-        float D = Warp::squareToBeckmannPdf(wh.z() > 0.f ? wh : -wh, adjustAlpha(wi));
-        return F * D / (4 * wo.dot(wh));
+        if (wh.z() < 0) wh = -wh;
+
+        float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
+        float D = Warp::squareToBeckmannPdf(wh, scaleAlpha(wi));
+        return F * D / (4 * fabs(wo.dot(wh)));
     }
 
-    float fRefract(const Vector3f &wi, const Vector3f &wo) const {
+    float evalT(const Vector3f &wi, const Vector3f &wo) const {
         if (sameHemisphere(wi, wo)) return 0;
+        if ((wo.array() == 0).all()) return 0;
 
         float absCosThetaI = std::fabsf(Frame::cosTheta(wi));
         float absCosThetaO = std::fabsf(Frame::cosTheta(wo));
         if (absCosThetaI == 0.f || absCosThetaO == 0.f) return 0;
 
-        float ni = m_extIOR;
-        float no = m_intIOR;
-        if (Frame::cosTheta(wi) <= 0) {
-            std::swap(ni, no);
-        }
-        Vector3f wh = -(wo * no + wi * ni).normalized();
-        //if (wh.z() < 0) wh = -wh;
+        float eta = Frame::cosTheta(wi) > 0 ? m_intIOR / m_extIOR : m_extIOR / m_intIOR;
+        Vector3f wh = -(eta * wo + wi).normalized();
+        if (wh.z() < 0) wh = -wh;
         if (wo.dot(wh) * wi.dot(wh) > 0) return 0;
 
         float absCosThetaH = std::fabsf(Frame::cosTheta(wh));
         if (absCosThetaH == 0.f) return 0;
 
-        float D = Warp::squareToBeckmannPdf(wh.z() > 0.f ? wh : -wh, m_alpha);
+        float D = Warp::squareToBeckmannPdf(wh, scaleAlpha(wi)) / absCosThetaH;
         float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
-        //float G = GTerm(wi, wh) * GTerm(wo, wh);
-        float eta = ni / no;
-        float sqrtDenom = wo.dot(wh) + eta * wi.dot(wh);
-        float dwh_dwo_dwi = std::fabsf(wo.dot(wh)) * std::fabsf(wi.dot(wh))
-                            / (sqrtDenom * sqrtDenom * absCosThetaI * absCosThetaO * absCosThetaH);
+        float sqrtDenom = eta * wo.dot(wh) + wi.dot(wh);
+        float dwh_dwo_dwi = std::fabsf(wo.dot(wh)) * std::fabsf(wi.dot(wh)) / (sqrtDenom * sqrtDenom * absCosThetaI * absCosThetaO);
         return (1.f - F) * D * G(wi, wo, wh) * dwh_dwo_dwi;
     }
 
 
-    float pdfRefract(const Vector3f &wi, const Vector3f &wo) const {
+    float pdfT(const Vector3f &wi, const Vector3f &wo) const {
         if (sameHemisphere(wo, wi)) return 0;
 
-        float ni = m_extIOR;
-        float no = m_intIOR;
-        if (Frame::cosTheta(wi) <= 0) {
-            std::swap(ni, no);
-        }
-
-        Vector3f wh = -(wo * no + wi * ni).normalized();
-        //if (wh.z() < 0) wh = -wh;
+        float eta = Frame::cosTheta(wi) > 0 ? m_intIOR / m_extIOR : m_extIOR / m_intIOR;
+        Vector3f wh = -(eta * wo + wi).normalized();
         if (wo.dot(wh) * wi.dot(wh) > 0) return 0;
 
-        // Compute change of variables _dwh\_dwi_ for microfacet transmission
-        float eta = ni / no;
-        float sqrtDenom = wo.dot(wh) + eta * wi.dot(wh);
+        float sqrtDenom = eta * wo.dot(wh) + wi.dot(wh);
         float dwh_dwo = eta * eta * std::fabsf(wo.dot(wh)) / (sqrtDenom * sqrtDenom);
         float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
-        float D = Warp::squareToBeckmannPdf(wh.z() > 0.f ? wh : -wh, adjustAlpha(wi));
-        return (1.f - F) * D * dwh_dwo;
-    }
-
-    float adjustAlpha(const Vector3f &wi) const {
-        return (1.2f-0.2f*sqrtf(std::fabsf(Frame::cosTheta(wi)))) * m_alpha;
+        float D = Warp::squareToBeckmannPdf(wh.z() > 0.f ? wh : -wh, scaleAlpha(wi));
+        return (1-F) * D * dwh_dwo;
     }
 
     float m_alpha;

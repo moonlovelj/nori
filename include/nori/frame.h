@@ -55,6 +55,10 @@ struct Frame {
         return v.z();
     }
 
+    static float absCosTheta(const Vector3f &v) {
+        return std::fabsf(v.z());
+    }
+
     /** \brief Assuming that the given direction is in the local coordinate
      * system, return the sine of the angle between the normal and v */
     static float sinTheta(const Vector3f &v) {
