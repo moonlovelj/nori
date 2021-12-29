@@ -21,6 +21,9 @@ struct BSDFQueryRecord {
     /// Outgoing direction (in the local frame)
     Vector3f wo;
 
+    /// Random
+    float random1D = -1;
+
     /// Relative refractive index in the sampled direction
     float eta;
 
@@ -31,10 +34,17 @@ struct BSDFQueryRecord {
     BSDFQueryRecord(const Vector3f &wi)
         : wi(wi), eta(1.f), measure(EUnknownMeasure) { }
 
+    BSDFQueryRecord(const Vector3f &wi, float random)
+            : wi(wi), random1D(random), eta(1.f), measure(EUnknownMeasure) { }
+
     /// Create a new record for querying the BSDF
     BSDFQueryRecord(const Vector3f &wi,
             const Vector3f &wo, EMeasure measure)
         : wi(wi), wo(wo), eta(1.f), measure(measure) { }
+
+    BSDFQueryRecord(const Vector3f &wi,
+                    const Vector3f &wo, EMeasure measure, float random)
+            : wi(wi), wo(wo), random1D(random), eta(1.f), measure(measure) { }
 };
 
 /**

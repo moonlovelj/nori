@@ -50,6 +50,10 @@ public:
         // cosine factor from the reflection equation, i.e.
         // return eval(bRec) * Frame::cosTheta(bRec.wo) / pdf(bRec);
 
+        if (bRec.random1D < 0) {
+            std::cerr<<"microfacetdielectric sample need a random \n";
+            return Color3f(0);
+        }
 
         if (Frame::cosTheta(bRec.wi) == 0.f) return Color3f(0);
 
@@ -60,9 +64,8 @@ public:
         if (Warp::squareToBeckmannPdf(m, scaleAlpha(bRec.wi)) == 0.f) return Color3f(0);
 
         float F = fresnel(m.dot(bRec.wi), m_extIOR, m_intIOR);
-        std::srand(std::time(nullptr)); // use current time as seed for random generator
-        float randomVariable = std::rand() / (float)RAND_MAX;
-        if (randomVariable <= F) {
+
+        if (bRec.random1D <= F) {
             // reflect
             bRec.wo = reflect(bRec.wi, m);
             if (!sameHemisphere(bRec.wi, bRec.wo)) return Color3f(0);

@@ -83,7 +83,6 @@ public:
 
         if (Frame::cosTheta(bRec.wi) == 0.f) return Color3f(0);
         Vector3f m = Warp::squareToBeckmann(_sample, scaleAlpha(bRec.wi));
-        if (Warp::squareToBeckmannPdf(m, scaleAlpha(bRec.wi)) == 0) return Color3f(0);
         if ((Frame::cosTheta(bRec.wi) > 0.f ? m : -m).dot(bRec.wi) < 0){
             return Color3f(0);
         }
@@ -91,8 +90,6 @@ public:
         //refract
         bRec.wo = refract(m, bRec.wi, m_extIOR, m_intIOR);
         if ((bRec.wo.array() == 0).all()) return Color3f(0);
-
-        if (sameHemisphere(bRec.wo, bRec.wi)) return Color3f(0);
 
         bRec.measure = ESolidAngle;
         float p = pdf(bRec);
