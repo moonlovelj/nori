@@ -6,7 +6,7 @@
 
 #include <nori/bsdf.h>
 #include <nori/frame.h>
-#include <nori/warp.h>
+#include <nori/microfacetdistribution.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -21,6 +21,8 @@ public:
 
         /* Exterior IOR (default: air) */
         m_extIOR = propList.getFloat("extIOR", 1.000277f);
+
+        m_microfacetDistribution = std::make_shared<BeckmannDistribution>(m_alpha);
     }
 
     /// Evaluate the BRDF for the given pair of directions
@@ -40,12 +42,13 @@ public:
 
         Vector3f wh = (wi + wo).normalized();
         if (wh.z() < 0) wh = -wh;
-        float absCosThetaH = std::fabsf(Frame::cosTheta(wh));
-        if (absCosThetaH == 0.f) return 0;
+//        float absCosThetaH = std::fabsf(Frame::cosTheta(wh));
+//        if (absCosThetaH == 0.f) return 0;
 
-        float D = Warp::squareToBeckmannPdf(wh, scaleAlpha(wi));
+        float D = m_microfacetDistribution->D(wh, wi);
         float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
-        return D * F * G(wi, wo, wh) / (4 * absCosThetaI * absCosThetaO * absCosThetaH);
+        float G = m_microfacetDistribution->G(wi, wo, wh);
+        return D * F * G / (4 * absCosThetaI * absCosThetaO);
     }
 
     /// Evaluate the sampling density of \ref sample() wrt. solid angles
@@ -61,8 +64,7 @@ public:
         Vector3f wh = (wo + wi).normalized();
         if (wh.z() < 0) wh = -wh;
 
-        float D = Warp::squareToBeckmannPdf(wh, scaleAlpha(wi));
-        return D / (4 * fabs(wo.dot(wh)));
+        return m_microfacetDistribution->pdf(wo, wh, wi) / (4 * fabs(wo.dot(wh)));
     }
 
     /// Sample the BRDF
@@ -72,11 +74,11 @@ public:
         // BRDF value divided by the solid angle density and multiplied by the
         // cosine factor from the reflection equation, i.e.
         // return eval(bRec) * Frame::cosTheta(bRec.wo) / pdf(bRec);
-        
+
         if (Frame::cosTheta(bRec.wi) == 0.f) return Color3f(0);
 
-        Vector3f m = Warp::squareToBeckmann(_sample, scaleAlpha(bRec.wi));
-        if ((Frame::cosTheta(bRec.wi) > 0.f ? m : -m).dot(bRec.wi) < 0){
+        Vector3f m = m_microfacetDistribution->sample_wh(bRec.wi, _sample);
+        if ((Frame::cosTheta(bRec.wi) > 0.f ? m : -m).dot(bRec.wi) < 0) {
             return Color3f(0);
         }
 
@@ -109,30 +111,12 @@ public:
                 m_extIOR
         );
     }
+
 private:
-    float G1(const Vector3f &wv, const Vector3f &wh, float alpha) const {
-        float cosThetaVN = Frame::cosTheta(wv);
-        if (cosThetaVN == 0.f) return 0;
-        float sinThetaVN = std::sqrtf(1 - cosThetaVN * cosThetaVN);
-        float tanThetaVN = std::fabsf(sinThetaVN / cosThetaVN);
-        if (tanThetaVN == 0.f) return 0;
-
-        float b = 1.f / (alpha * tanThetaVN);
-        if (wv.dot(wh) * cosThetaVN < 0) return 0;
-        return (b < 1.6f ? (3.535f*b+2.181f*b*b)/(1+2.276f*b+2.577*b*b):1);
-    }
-
-    float G(const Vector3f &wi, const Vector3f &wo, const Vector3f &wh) const {
-        float alpha = scaleAlpha(wi);
-        return G1(wi, wh, alpha) * G1(wo, wh, alpha);
-    }
-
-    float scaleAlpha(const Vector3f &wi) const {
-        return (1.2f-.2f*sqrtf(Frame::absCosTheta(wi))) * m_alpha;
-    }
 
     float m_alpha;
     float m_intIOR, m_extIOR;
+    std::shared_ptr<MicrofacetDistribution> m_microfacetDistribution;
 };
 
 NORI_REGISTER_CLASS(MicrofacetReflection, "microfacetreflection");

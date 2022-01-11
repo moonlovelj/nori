@@ -7,6 +7,7 @@
 #include <nori/bsdf.h>
 #include <nori/frame.h>
 #include <nori/warp.h>
+#include <nori/microfacetdistribution.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -21,6 +22,8 @@ public:
 
         /* Exterior IOR (default: air) */
         m_extIOR = propList.getFloat("extIOR", 1.000277f);
+
+        m_microfacetDistribution = std::make_shared<BeckmannDistribution>(m_alpha);
     }
 
     /// Evaluate the BRDF for the given pair of directions
@@ -51,17 +54,17 @@ public:
         // return eval(bRec) * Frame::cosTheta(bRec.wo) / pdf(bRec);
 
         if (bRec.random1D < 0) {
-            std::cerr<<"microfacetdielectric sample need a random \n";
+            std::cerr << "microfacetdielectric sample need a random \n";
             return Color3f(0);
         }
 
         if (Frame::cosTheta(bRec.wi) == 0.f) return Color3f(0);
 
-        Vector3f m = Warp::squareToBeckmann(_sample, scaleAlpha(bRec.wi));
-        if ((Frame::cosTheta(bRec.wi) > 0.f ? m : -m).dot(bRec.wi) < 0){
+        Vector3f m = m_microfacetDistribution->sample_wh(bRec.wi, _sample);
+        if ((Frame::cosTheta(bRec.wi) > 0.f ? m : -m).dot(bRec.wi) < 0) {
             return Color3f(0);
         }
-        if (Warp::squareToBeckmannPdf(m, scaleAlpha(bRec.wi)) == 0.f) return Color3f(0);
+        if (m_microfacetDistribution->D(m, bRec.wi) == 0.f) return Color3f(0);
 
         float F = fresnel(m.dot(bRec.wi), m_extIOR, m_intIOR);
 
@@ -102,27 +105,12 @@ public:
                 m_extIOR
         );
     }
+
 private:
-    float G1(const Vector3f &wv, const Vector3f &wh, float alpha) const {
-        float cosThetaVN = Frame::cosTheta(wv);
-        if (cosThetaVN == 0.f) return 0;
-        float sinThetaVN = std::sqrtf(1 - cosThetaVN * cosThetaVN);
-        float tanThetaVN = std::fabsf(sinThetaVN / cosThetaVN);
-        if (tanThetaVN == 0.f) return 0;
 
-        float b = 1.f / (alpha * tanThetaVN);
-        if (wv.dot(wh) * cosThetaVN < 0) return 0;
-        return (b < 1.6f ? (3.535f*b+2.181f*b*b)/(1+2.276f*b+2.577*b*b):1);
-    }
-
-    float G(const Vector3f &wi, const Vector3f &wo, const Vector3f &wh) const {
-        float alpha = scaleAlpha(wi);
-        return G1(wi, wh, alpha) * G1(wo, wh, alpha);
-    }
-
-    float scaleAlpha(const Vector3f &wi) const {
-        return (1.2f-.2f*sqrtf(Frame::absCosTheta(wi))) * m_alpha;
-    }
+//    float scaleAlpha(const Vector3f &wi) const {
+//        return (1.2f-.2f*sqrtf(Frame::absCosTheta(wi))) * m_alpha;
+//    }
 
     float evalR(const Vector3f &wi, const Vector3f &wo) const {
         if (!sameHemisphere(wi, wo)) return 0;
@@ -133,12 +121,13 @@ private:
 
         Vector3f wh = (wi + wo).normalized();
         if (wh.z() < 0) wh = -wh;
-        float absCosThetaH = std::fabsf(Frame::cosTheta(wh));
-        if (absCosThetaH == 0.f) return 0;
+//        float absCosThetaH = std::fabsf(Frame::cosTheta(wh));
+//        if (absCosThetaH == 0.f) return 0;
 
-        float D = Warp::squareToBeckmannPdf(wh, scaleAlpha(wi));
+        float D = m_microfacetDistribution->D(wh, wi);
         float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
-        return D * F * G(wi, wo, wh) / (4 * absCosThetaI * absCosThetaO * absCosThetaH);
+        float G = m_microfacetDistribution->G(wi, wo, wh);
+        return D * F * G / (4 * absCosThetaI * absCosThetaO);
     }
 
 
@@ -148,8 +137,7 @@ private:
         if (wh.z() < 0) wh = -wh;
 
         float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
-        float D = Warp::squareToBeckmannPdf(wh, scaleAlpha(wi));
-        return F * D / (4 * fabs(wo.dot(wh)));
+        return F * m_microfacetDistribution->pdf(wo, wh, wi) / (4 * fabs(wo.dot(wh)));
     }
 
     float evalT(const Vector3f &wi, const Vector3f &wo) const {
@@ -165,14 +153,16 @@ private:
         if (wh.z() < 0) wh = -wh;
         if (wo.dot(wh) * wi.dot(wh) > 0) return 0;
 
-        float absCosThetaH = std::fabsf(Frame::cosTheta(wh));
-        if (absCosThetaH == 0.f) return 0;
+//        float absCosThetaH = std::fabsf(Frame::cosTheta(wh));
+//        if (absCosThetaH == 0.f) return 0;
 
-        float D = Warp::squareToBeckmannPdf(wh, scaleAlpha(wi)) / absCosThetaH;
+        float D = m_microfacetDistribution->D(wh, wi);
         float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
         float sqrtDenom = eta * wo.dot(wh) + wi.dot(wh);
-        float dwh_dwo_dwi = std::fabsf(wo.dot(wh)) * std::fabsf(wi.dot(wh)) / (sqrtDenom * sqrtDenom * absCosThetaI * absCosThetaO);
-        return (1.f - F) * D * G(wi, wo, wh) * dwh_dwo_dwi;
+        float dwh_dwo_dwi =
+                std::fabsf(wo.dot(wh)) * std::fabsf(wi.dot(wh)) / (sqrtDenom * sqrtDenom * absCosThetaI * absCosThetaO);
+        float G = m_microfacetDistribution->G(wi, wo, wh);
+        return (1.f - F) * D * G * dwh_dwo_dwi;
     }
 
 
@@ -186,12 +176,12 @@ private:
         float sqrtDenom = eta * wo.dot(wh) + wi.dot(wh);
         float dwh_dwo = eta * eta * std::fabsf(wo.dot(wh)) / (sqrtDenom * sqrtDenom);
         float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
-        float D = Warp::squareToBeckmannPdf(wh.z() > 0.f ? wh : -wh, scaleAlpha(wi));
-        return (1-F) * D * dwh_dwo;
+        return (1 - F) * m_microfacetDistribution->pdf(wo, wh, wi) * dwh_dwo;
     }
 
     float m_alpha;
     float m_intIOR, m_extIOR;
+    std::shared_ptr<MicrofacetDistribution> m_microfacetDistribution;
 };
 
 NORI_REGISTER_CLASS(MicrofacetDielectric, "microfacetdielectric");
