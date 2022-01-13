@@ -22,7 +22,12 @@ public:
         /* Exterior IOR (default: air) */
         m_extIOR = propList.getFloat("extIOR", 1.000277f);
 
-        m_microfacetDistribution = std::make_shared<BeckmannDistribution>(m_alpha);
+        std::string distribution = propList.getString("distribution", "ggx");
+        if (distribution == "beckmann") {
+            m_microfacetDistribution = std::make_shared<BeckmannDistribution>(m_alpha);
+        } else if (distribution == "ggx") {
+            m_microfacetDistribution = std::make_shared<GGXDistribution>(m_alpha);
+        }
     }
 
     /// Evaluate the BRDF for the given pair of directions

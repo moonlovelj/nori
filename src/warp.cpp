@@ -92,4 +92,24 @@ float Warp::squareToBeckmannPdf(const Vector3f &m, float alpha) {
     return pdf > 1e-20 ? pdf : 0;
 }
 
+Vector3f Warp::squareToGGX(const Point2f &sample, float alpha) {
+    float tan_theta = alpha * sqrt(sample.x()) / sqrt(1.f - sample.x());
+    float theta = std::atan(tan_theta);
+    float cos_theta = std::cos(theta);
+    float sin_theta = std::sqrtf(std::max(0.f, 1 - cos_theta * cos_theta));
+    float phi = 2 * M_PI * sample.y();
+    return Vector3f(sin_theta * std::cosf(phi), sin_theta * std::sinf(phi), cos_theta);
+}
+
+float Warp::squareToGGXPdf(const Vector3f &m, float alpha) {
+    if (m.z() <= 0) return 0;
+    float cos_theta = m.z();
+    float cos_theta2 = cos_theta * cos_theta;
+    float tan_theta2 = std::max(0.f, (1 - cos_theta2) / cos_theta2);
+    float alpha2 = alpha * alpha;
+    float denominator = M_PI * cos_theta * cos_theta2 * (alpha2 + tan_theta2) * (alpha2 + tan_theta2);
+    float pdf = alpha2 / denominator;
+    return pdf > 1e-20 ? pdf : 0;
+}
+
 NORI_NAMESPACE_END

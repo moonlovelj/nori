@@ -9,6 +9,7 @@
 #include <nori/frame.h>
 
 NORI_NAMESPACE_BEGIN
+
 class MicrofacetDistribution {
 public:
     virtual ~MicrofacetDistribution() {}
@@ -47,6 +48,22 @@ private:
         return (1.2f - .2f * sqrtf(Frame::absCosTheta(wi))) * m_alpha;
     }
 
+    float m_alpha;
+};
+
+class GGXDistribution : public MicrofacetDistribution {
+public:
+    GGXDistribution(float alpha) : m_alpha(alpha) {}
+
+    float D(const Vector3f &wh, const Vector3f &wi) const override;
+
+    float G1(const Vector3f &w, const Vector3f &wh, const Vector3f &wi) const override;
+
+    Vector3f sample_wh(const Vector3f &wi, const Point2f &sample) const override;
+
+    std::string toString() const override;
+
+private:
     float m_alpha;
 };
 
