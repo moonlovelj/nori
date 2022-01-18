@@ -59,6 +59,8 @@ public:
     static Vector3f squareToGGX(const Point2f &sample, float alpha);
 
     static float squareToGGXPdf(const Vector3f &m, float alpha);
+
+    static float phaseHG(float cosTheta, float g);
 };
 
 NORI_NAMESPACE_END
