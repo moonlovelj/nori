@@ -10,6 +10,8 @@
 #include <nori/frame.h>
 #include <nori/bbox.h>
 #include <nori/dpdf.h>
+#include <nori/medium.h>
+#include <nori/phasefunction.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -34,9 +36,13 @@ struct Intersection {
     Frame geoFrame;
     /// Pointer to the associated mesh
     const Mesh *mesh;
+    /// medium
+    MediumInterface mediumInterface;
+    /// this if only for an interaction at a point in a scattering medium
+    std::shared_ptr<const PhaseFunction> phase;
 
     /// Create an uninitialized intersection record
-    Intersection() : mesh(nullptr) { }
+    Intersection() : mesh(nullptr), mediumInterface(MediumInterface(nullptr)) { }
 
     /// Transform a direction vector into the local shading frame
     Vector3f toLocal(const Vector3f &d) const {
@@ -46,6 +52,17 @@ struct Intersection {
     /// Transform a direction vector from local to world coordinates
     Vector3f toWorld(const Vector3f &d) const {
         return shFrame.toWorld(d);
+    }
+
+    std::shared_ptr<const Medium> getMedium(const Vector3f &w) const {
+        return w.dot(shFrame.n) > 0 ? mediumInterface.m_outside :
+               mediumInterface.m_inside;
+    }
+
+    /// For interactions that are known to be inside participating media
+    std::shared_ptr<const Medium> getMedium() const {
+        assert(mediumInterface.m_inside == mediumInterface.m_outside);
+        return mediumInterface.m_inside;
     }
 
     /// Return a human-readable summary of the intersection record

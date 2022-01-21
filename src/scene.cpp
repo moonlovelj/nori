@@ -118,5 +118,21 @@ bool Scene::illuminatedEachOther(const Point3f &p0, const Point3f &p1) const {
     return !this->rayIntersect(ray);
 }
 
+bool Scene::rayIntersectTr(const Ray3f &ray, Sampler *sampler,
+                           Intersection &its, Color3f &tr) const {
+    tr = Color3f(1.f);
+    Ray3f r = ray;
+    while (true) {
+        bool hit = rayIntersect(r, its);
+        if (r.medium)
+            tr *= r.medium->tr(r, sampler);
+        if (!hit)
+            return false;
+        if (its.mesh->getBSDF() != nullptr)
+            return true;
+        r = Ray3f(its.p + Epsilon*r.d, r.d, r.medium);
+    }
+}
+
 NORI_REGISTER_CLASS(Scene, "scene");
 NORI_NAMESPACE_END

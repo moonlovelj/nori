@@ -106,7 +106,7 @@ add_executable(nori
         src/microfacettransmission.cpp
         src/microfacetreflection.cpp
         src/microfacetdistribution.cpp
-        src/henyeygreenstein.cpp)
+        src/henyeygreenstein.cpp include/nori/medium.h src/homogeneousmedium.cpp)
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
 

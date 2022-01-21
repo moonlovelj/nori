@@ -84,6 +84,9 @@ public:
         return m_accel->rayIntersect(ray, its, true);
     }
 
+    bool rayIntersectTr(const Ray3f &ray, Sampler *sampler,
+                        Intersection &its, Color3f &tr) const;
+
     /// \brief Return an axis-aligned box that bounds the scene
     const BoundingBox3f &getBoundingBox() const {
         return m_accel->getBoundingBox();
