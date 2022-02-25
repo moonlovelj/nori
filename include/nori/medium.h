@@ -21,16 +21,16 @@ public:
 };
 
 struct MediumInterface {
-    MediumInterface(std::shared_ptr<const Medium> medium)
+    MediumInterface(const Medium *medium)
             : m_inside(medium), m_outside(medium) {}
 
-    MediumInterface(std::shared_ptr<const Medium> inside, std::shared_ptr<const Medium> outside)
+    MediumInterface(const Medium *inside, const Medium *outside)
             : m_inside(inside), m_outside(outside) {}
 
     bool isMediumTransition() const { return m_inside != m_outside; }
 
-    std::shared_ptr<const Medium> m_inside;
-    std::shared_ptr<const Medium> m_outside;
+    const Medium  *m_inside;
+    const Medium  *m_outside;
 };
 
 NORI_NAMESPACE_END

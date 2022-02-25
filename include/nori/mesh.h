@@ -65,6 +65,10 @@ struct Intersection {
         return mediumInterface.m_inside;
     }
 
+    bool IsMedium() const {
+        return phase != nullptr;
+    }
+
     /// Return a human-readable summary of the intersection record
     std::string toString() const;
 };
