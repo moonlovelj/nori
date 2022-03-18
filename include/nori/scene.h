@@ -118,6 +118,7 @@ private:
     Sampler *m_sampler = nullptr;
     Camera *m_camera = nullptr;
     Accel *m_accel = nullptr;
+    Medium *m_medium = nullptr;
 };
 
 NORI_NAMESPACE_END

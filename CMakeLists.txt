@@ -68,6 +68,9 @@ add_executable(nori
         include/nori/accelstruct.h
         include/nori/microfacetdistribution.h
         include/nori/phasefunction.h
+        include/nori/medium.h
+        include/nori/mediuminterface.h
+        include/nori/intersection.h
 
         # Source code files
         src/bitmap.cpp
@@ -106,7 +109,9 @@ add_executable(nori
         src/microfacettransmission.cpp
         src/microfacetreflection.cpp
         src/microfacetdistribution.cpp
-        src/henyeygreenstein.cpp include/nori/medium.h src/homogeneousmedium.cpp)
+        src/henyeygreenstein.cpp
+        src/homogeneousmedium.cpp
+        src/path_volume.cpp)
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
 

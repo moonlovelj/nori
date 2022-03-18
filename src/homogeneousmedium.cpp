@@ -4,17 +4,21 @@
 
 #include <nori/medium.h>
 #include <nori/sampler.h>
+#include <nori/phasefunction.h>
+#include <nori/color.h>
 
 NORI_NAMESPACE_BEGIN
 
-class HenyeyGreenstein;
-
 class HomogeneousMedium : public Medium {
 public:
-    HomogeneousMedium(const Color3f &sigma_a, const Color3f &sigma_s,
-                      float g)
-            : sigma_a(sigma_a), sigma_s(sigma_s), sigma_t(sigma_s + sigma_a),
-              g(g) {}
+
+    HomogeneousMedium(const PropertyList &propList) {
+        sigma_a = propList.getColor("sigma_a", Color3f(0.1f));
+        sigma_s = propList.getColor("sigma_s", Color3f(0.2f));
+        g = propList.getFloat("g", 0.1f);
+        sigma_t = sigma_s + sigma_a;
+        m_phase = std::make_shared<HenyeyGreenstein>(g);
+    }
 
     Color3f tr(const Ray3f &ray, Sampler *sampler) const override {
         Color3f exponent = -sigma_t * std::min(ray.maxt * ray.d.norm(), std::numeric_limits<float>::max());
@@ -27,10 +31,9 @@ public:
         float t = std::min(dist * ray.d.norm(), ray.maxt);
         bool sampledMedium = t < ray.maxt;
         if (sampledMedium) {
-            its = Intersection();
             its.t = t;
-            its.mediumInterface = MediumInterface(this);
-            its.phase = std::make_shared<HenyeyGreenstein>(g);
+            its.mediumInterface = this;
+            its.insideMedium = true;
         }
 
         Color3f e = -sigma_t * std::min(t, std::numeric_limits<float>::max()) * ray.d.norm();
@@ -42,11 +45,16 @@ public:
         return sampledMedium ? ((Color3f)(transmission * sigma_s) / pdf) : (transmission / pdf);
     }
 
+    std::string toString() const override {
+        return tfm::format("HomogeneousMedium, sigma_a:%s, sigma_s:%s, g:%s \n", sigma_a, sigma_s, g);
+    }
+
 private:
-    const Color3f sigma_a, sigma_s, sigma_t;
-    const float g;
+    Color3f sigma_a, sigma_s, sigma_t;
+    float g;
 };
 
+NORI_REGISTER_CLASS(HomogeneousMedium, "homogeneousmedium");
 NORI_NAMESPACE_END
 
 

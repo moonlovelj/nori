@@ -86,6 +86,7 @@ public:
             case EIntegrator: return "integrator";
             case ESampler:    return "sampler";
             case ETest:       return "test";
+            case EMedium:     return "medium";
             default:          return "<unknown>";
         }
     }

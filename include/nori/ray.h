@@ -7,7 +7,6 @@
 #pragma once
 
 #include <nori/vector.h>
-#include <nori/medium.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -33,7 +32,6 @@ template <typename _PointType, typename _VectorType> struct TRay {
     VectorType dRcp; ///< Componentwise reciprocals of the ray direction
     Scalar mint;     ///< Minimum position on the ray segment
     Scalar maxt;     ///< Maximum position on the ray segment
-    std::shared_ptr<const Medium> medium;
 
     /// Construct a new ray
     TRay() : mint(Epsilon), 
@@ -44,13 +42,6 @@ template <typename _PointType, typename _VectorType> struct TRay {
             mint(Epsilon), maxt(std::numeric_limits<Scalar>::infinity()) {
         update();
     }
-
-    /// Construct a new ray
-    TRay(const PointType &o, const VectorType &d, std::shared_ptr<const Medium> medium) : o(o), d(d),medium(medium)
-            mint(Epsilon), maxt(std::numeric_limits<Scalar>::infinity()) {
-        update();
-    }
-
 
     /// Construct a new ray
     TRay(const PointType &o, const VectorType &d, 

@@ -112,7 +112,7 @@ float Warp::squareToGGXPdf(const Vector3f &m, float alpha) {
     return pdf > 1e-20 ? pdf : 0;
 }
 
-float phaseHG(float cosTheta, float g) {
+float Warp::phaseHG(float cosTheta, float g) {
     float denom = 1 + g * g + 2 * g * cosTheta;
     return M_1_PI * 0.25f * (1 - g * g) / (denom * std::sqrt(denom));
 }

@@ -73,6 +73,11 @@ void Scene::addChild(NoriObject *obj) {
                 throw NoriException("There can only be one camera per scene!");
             m_camera = static_cast<Camera *>(obj);
             break;
+        case EMedium:
+            if (m_medium)
+                throw NoriException("There can only be one medium per scene!");
+            m_medium = static_cast<Medium *>(obj);
+            break;
         
         case EIntegrator:
             if (m_integrator)
@@ -124,13 +129,13 @@ bool Scene::rayIntersectTr(const Ray3f &ray, Sampler *sampler,
     Ray3f r = ray;
     while (true) {
         bool hit = rayIntersect(r, its);
-        if (r.medium)
-            tr *= r.medium->tr(r, sampler);
+        if (m_medium)
+            tr *= m_medium->tr(r, sampler);
         if (!hit)
             return false;
         if (its.mesh->getBSDF() != nullptr)
             return true;
-        r = Ray3f(its.p + Epsilon*r.d, r.d, r.medium);
+        r = Ray3f(its.p + Epsilon*r.d, r.d);
     }
 }
 
