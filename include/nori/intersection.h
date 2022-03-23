@@ -66,7 +66,7 @@ struct Intersection {
         return mediumInterface.m_inside;
     }
 
-    bool IsMedium() const {
+    bool isMedium() const {
         return insideMedium;
     }
 

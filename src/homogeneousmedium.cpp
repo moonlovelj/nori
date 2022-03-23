@@ -15,7 +15,7 @@ public:
     HomogeneousMedium(const PropertyList &propList) {
         sigma_a = propList.getColor("sigma_a", Color3f(0.1f));
         sigma_s = propList.getColor("sigma_s", Color3f(0.2f));
-        g = propList.getFloat("g", 0.1f);
+        g = 0;//propList.getFloat("g", 0.1f);
         sigma_t = sigma_s + sigma_a;
         m_phase = std::make_shared<HenyeyGreenstein>(g);
     }
@@ -34,6 +34,8 @@ public:
             its.t = t;
             its.mediumInterface = this;
             its.insideMedium = true;
+        } else {
+            its.t = ray.maxt;
         }
 
         Color3f e = -sigma_t * std::min(t, std::numeric_limits<float>::max()) * ray.d.norm();
@@ -42,7 +44,15 @@ public:
         Color3f density = sampledMedium ? (sigma_t * transmission) : transmission;
         float pdf = density.x() + density.y() + density.z();
         pdf /= 3;
-        return sampledMedium ? ((Color3f)(transmission * sigma_s) / pdf) : (transmission / pdf);
+        return (Color3f)(transmission / pdf);
+    }
+
+    Color3f sigmaA() const override {
+        return sigma_a;
+    }
+
+    Color3f sigmaS() const override {
+        return sigma_s;
     }
 
     std::string toString() const override {

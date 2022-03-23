@@ -111,6 +111,8 @@ public:
     std::string toString() const;
 
     EClassType getClassType() const { return EScene; }
+
+    Medium* getMedium() const {return m_medium;}
 private:
     std::vector<Mesh *> m_meshes;
     std::vector<Mesh *> m_emitters;

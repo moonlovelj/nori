@@ -27,7 +27,7 @@ float HenyeyGreenstein::sample(const Vector3f &wi, Vector3f &wo, const Point2f &
     Vector3f sphericalCoord = sphericalDirection(std::acos(cosTheta), phi);
     wo = v1 * sphericalCoord.x() + v2 * sphericalCoord.y() + wi * sphericalCoord.z();
 
-    return Warp::phaseHG(cosTheta, m_g);
+    return 1;
 }
 
 NORI_NAMESPACE_END
