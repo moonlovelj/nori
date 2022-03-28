@@ -40,7 +40,7 @@ struct Intersection {
     MediumInterface mediumInterface;
 //    /// this if only for an interaction at a point in a scattering medium
 //    std::shared_ptr<const PhaseFunction> phase;
-    bool insideMedium;
+    bool insideMedium = false;
 
     /// Create an uninitialized intersection record
     Intersection() : mesh(nullptr), mediumInterface(MediumInterface(nullptr)) { }
