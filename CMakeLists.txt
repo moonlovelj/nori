@@ -111,7 +111,7 @@ add_executable(nori
         src/microfacetdistribution.cpp
         src/henyeygreenstein.cpp
         src/homogeneousmedium.cpp
-        src/path_volume.cpp)
+        src/path_volume.cpp src/griddensitymedium.cpp)
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
 

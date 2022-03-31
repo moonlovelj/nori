@@ -16,7 +16,7 @@ public:
         sigma_a = propList.getColor("sigma_a", Color3f(0.1f));
         sigma_s = propList.getColor("sigma_s", Color3f(0.2f));
         emittance = propList.getColor("emittance", Color3f(1.f));
-        g = 0;//propList.getFloat("g", 0.1f);
+        g = propList.getFloat("g", 0.f);
         sigma_t = sigma_s + sigma_a;
         m_phase = std::make_shared<HenyeyGreenstein>(g);
     }
