@@ -43,20 +43,20 @@ private:
             }
 
             Color3f L_dir(0);
-            auto lights = scene->getEmitters();
-            Emitter *pLight = lights[std::rand() % lights.size()]->getEmitter();
-            EmitterQueryRecord eRec;
-            Color3f l_i = pLight->sample(sampleMediumPoint, eRec, sampler->next2D());
-            Vector3f wl = (eRec.point - sampleMediumPoint).normalized();
-            if (scene->illuminatedEachOther(sampleMediumPoint, eRec.point)) {
-                L_dir = l_i * lights.size() * medium->getPhase()->p(-ray.d, wl);
-            }
+//            auto lights = scene->getEmitters();
+//            Emitter *pLight = lights[std::rand() % lights.size()]->getEmitter();
+//            EmitterQueryRecord eRec;
+//            Color3f l_i = pLight->sample(sampleMediumPoint, eRec, sampler->next2D());
+//            Vector3f wl = (eRec.point - sampleMediumPoint).normalized();
+//            if (scene->illuminatedEachOther(sampleMediumPoint, eRec.point)) {
+//                L_dir = l_i * lights.size() * medium->getPhase()->p(-ray.d, wl);
+//            }
 
             Vector3f wo;
             Color3f phaseSample = medium->getPhase()->sample(-ray.d, wo, sampler->next2D());
             Ray3f nextRay(sampleMediumPoint, wo);
             return tr_pdf *
-                   (le + medium->sigmaS() * (L_dir + phaseSample * Li(scene, sampler, nextRay, false)) / 0.95f);
+                   (le + medium->sigmaS() * (L_dir + phaseSample * Li(scene, sampler, nextRay, true)) / 0.95f);
         } else {
             Color3f le = includeEmitter ? its.mesh->getEmission(its, -ray.d) : Color3f(0);
             if (sampler->next1D() > 0.95f) {
