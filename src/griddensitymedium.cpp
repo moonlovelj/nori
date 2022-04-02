@@ -2,6 +2,8 @@
 // Created by 郭彬 on 2022/3/31.
 //
 
+#include <fstream>
+
 #include <nori/medium.h>
 #include <nori/sampler.h>
 #include <nori/phasefunction.h>
@@ -23,7 +25,7 @@ public:
 
         m_phase = std::make_shared<HenyeyGreenstein>(g);
         worldToMedium = propList.getTransform("toWorld", Transform()).inverse();
-        invMaxDensity = 1;
+        readDensityFromFile(propList.getString("densityFile"));
     }
 
     Color3f tr(const Ray3f &ray, Sampler *sampler) const override {
@@ -68,23 +70,47 @@ private:
     float g;
     float invMaxDensity;
     int nx, ny, nz;
+    std::vector<float> densityData;
     Transform worldToMedium;
 
     float density(const Point3f &p) const {
         // Compute voxel coordinates and offsets for _p_
-//        Point3f pSamples(p.x * nx - .5f, p.y * ny - .5f, p.z * nz - .5f);
-//        Point3i pi = (Point3i)Floor(pSamples);
-//        Vector3f d = pSamples - (Point3f)pi;
-//
-//        // Trilinearly interpolate density values to compute local density
-//        Float d00 = Lerp(d.x, D(pi), D(pi + Vector3i(1, 0, 0)));
-//        Float d10 = Lerp(d.x, D(pi + Vector3i(0, 1, 0)), D(pi + Vector3i(1, 1, 0)));
-//        Float d01 = Lerp(d.x, D(pi + Vector3i(0, 0, 1)), D(pi + Vector3i(1, 0, 1)));
-//        Float d11 = Lerp(d.x, D(pi + Vector3i(0, 1, 1)), D(pi + Vector3i(1, 1, 1)));
-//        Float d0 = Lerp(d.y, d00, d10);
-//        Float d1 = Lerp(d.y, d01, d11);
-//        return Lerp(d.z, d0, d1);
-          return 1.f;
+        Point3f pSamples(p.x() * nx - .5f, p.y() * ny - .5f, p.z() * nz - .5f);
+        Point3i pi(floor(pSamples.x()), floor(pSamples.y()), floor(pSamples.z()));
+        Vector3f d(pSamples.x() - pi.x(), pSamples.y() - pi.y(), pSamples.z() - pi.z());
+
+        // Trilinearly interpolate density values to compute local density
+        float d00 = lerp(d.x(), D(pi), D(pi + Vector3i(1, 0, 0)));
+        float d10 = lerp(d.x(), D(pi + Vector3i(0, 1, 0)), D(pi + Vector3i(1, 1, 0)));
+        float d01 = lerp(d.x(), D(pi + Vector3i(0, 0, 1)), D(pi + Vector3i(1, 0, 1)));
+        float d11 = lerp(d.x(), D(pi + Vector3i(0, 1, 1)), D(pi + Vector3i(1, 1, 1)));
+        float d0 = lerp(d.y(), d00, d10);
+        float d1 = lerp(d.y(), d01, d11);
+        return lerp(d.z(), d0, d1);
+    }
+
+    float D(const Point3i &p) const {
+        BoundingBox3i sampleBounds(Point3i(0, 0, 0), Point3i(nx, ny, nz));
+        if (!sampleBounds.contains(p, true)) return 0;
+        return densityData[(p.z() * ny + p.y()) * nx + p.x()];
+    }
+
+    void readDensityFromFile(const std::string &fileName) {
+        auto name = tfm::format("%s/%s", std::filesystem::current_path().string(), fileName);
+        std::fstream f(name);
+        if (!f.is_open()) {
+            std::cout << tfm::format("readDensityFromFile %s failed \n", fileName);
+            return;
+        }
+
+        float maxDensity = 0;
+        f >> nx >> ny >> nz;
+        densityData.resize(nx * ny * nz);
+        for (size_t i = 0; i < densityData.size(); ++i) {
+            f >> densityData[i];
+            maxDensity = std::max(maxDensity, densityData[i]);
+        }
+        invMaxDensity = 1.f / maxDensity;
     }
 };
 
