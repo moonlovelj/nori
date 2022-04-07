@@ -29,7 +29,27 @@ public:
     }
 
     Color3f tr(const Ray3f &ray, Sampler *sampler) const override {
-        return Color3f(1);
+        Ray3f localRay = worldToMedium * ray;
+        const BoundingBox3f b(Point3f(0, 0, 0), Point3f(1, 1, 1));
+        float tMin, tMax;
+        if (!b.rayIntersect(localRay, tMin, tMax)) return Color3f(1);
+
+        float t = tMin;
+        float tr = 1;
+        while (true) {
+            t -= std::log(1.f - sampler->next1D()) * invMaxDensity / sigma_t[0];
+            if (t >= tMax) break;
+            float den = density(localRay(t));
+            tr *= 1.f - std::max(0.f, den * invMaxDensity);
+            const float rrThreshold = .1f;
+            if (tr < rrThreshold) {
+                float q = std::max(.05f, 1.f - tr);
+                if (sampler->next1D() < q) return Color3f(0);
+                tr /= 1 - q;
+            }
+        }
+
+        return Color3f(tr);
     }
 
     Color3f sample(const Ray3f &ray, Sampler *sampler, Intersection &its) const override {

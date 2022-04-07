@@ -7,6 +7,7 @@
 #pragma once
 
 #include <nori/object.h>
+#include <nori/intersection.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -46,6 +47,9 @@ public:
      * provided by this instance
      * */
     EClassType getClassType() const { return EIntegrator; }
+
+protected:
+    Color3f estimateDirect(const Intersection &its, const Vector3f &w, const Scene *scene, Sampler *sampler) const;
 };
 
 NORI_NAMESPACE_END

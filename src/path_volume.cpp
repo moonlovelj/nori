@@ -35,6 +35,7 @@ private:
         Ray3f newRay(ray.o, ray.d, Epsilon, its.t);
         Color3f tr_pdf = scene->getMedium()->sample(newRay, sampler, newIts);
         if (newIts.isMedium()) {
+            newIts.p = newRay(newIts.t);
             const Medium *medium = scene->getMedium();
             Point3f sampleMediumPoint = newIts.t * ray.d + ray.o;
             Color3f le = medium->getEmittance(sampleMediumPoint, -ray.d) * medium->sigmaA();
@@ -42,30 +43,28 @@ private:
                 tr_pdf * le;
             }
 
-            Color3f L_dir(0);
-//            auto lights = scene->getEmitters();
-//            Emitter *pLight = lights[std::rand() % lights.size()]->getEmitter();
-//            EmitterQueryRecord eRec;
-//            Color3f l_i = pLight->sample(sampleMediumPoint, eRec, sampler->next2D());
-//            Vector3f wl = (eRec.point - sampleMediumPoint).normalized();
-//            if (scene->illuminatedEachOther(sampleMediumPoint, eRec.point)) {
-//                L_dir = l_i * lights.size() * medium->getPhase()->p(-ray.d, wl);
-//            }
-
+            Color3f L_dir = estimateDirect(newIts, -newRay.d, scene, sampler);
             Vector3f wo;
             Color3f phaseSample = medium->getPhase()->sample(-ray.d, wo, sampler->next2D());
             Ray3f nextRay(sampleMediumPoint, wo);
             return tr_pdf *
-                   (le + medium->sigmaS() * (L_dir + phaseSample * Li(scene, sampler, nextRay, true)) / 0.95f);
+                   (le + medium->sigmaS() * (L_dir + phaseSample * Li(scene, sampler, nextRay, false)) / 0.95f);
         } else {
             Color3f le = includeEmitter ? its.mesh->getEmission(its, -ray.d) : Color3f(0);
             if (sampler->next1D() > 0.95f) {
                 return tr_pdf * le;
             }
+
             BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d));
             Color3f bsdf = its.mesh->getBSDF()->sample(sampleBRDFRecord, sampler->next2D());
             Ray3f nextRay(its.p, its.shFrame.toWorld(sampleBRDFRecord.wo));
-            return tr_pdf * (le + bsdf * Li(scene, sampler, nextRay, true) / 0.95f);
+
+            if (its.mesh->getBSDF()->isDiffuse()) {
+                Color3f L_dir = estimateDirect(its, -ray.d, scene, sampler);
+                return tr_pdf * (le + (L_dir + bsdf * Li(scene, sampler, nextRay, false)) / 0.95f);
+            } else {
+                return tr_pdf * (le + bsdf * Li(scene, sampler, nextRay, true) / 0.95f);
+            }
         }
     }
 };
