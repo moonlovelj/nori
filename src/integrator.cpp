@@ -27,8 +27,12 @@ Color3f Integrator::estimateDirect(const Intersection &its,
         L_dir = l_i * its.getMedium()->tr(Ray3f(its.p,wi, Epsilon, (eRec.point - its.p).norm()), sampler) *
                 its.getMedium()->getPhase()->p(w, wi);
     } else {
+        Color3f tr(1.f);
+        if (scene->getMedium()) {
+            tr = scene->getMedium()->tr(Ray3f(its.p,wi, Epsilon, (eRec.point - its.p).norm()), sampler);
+        }
         BSDFQueryRecord sampleLightRecord(its.shFrame.toLocal(w), its.shFrame.toLocal(wi), ESolidAngle);
-        L_dir = l_i * its.mesh->getBSDF()->eval(sampleLightRecord) * std::max(0.f, its.shFrame.n.dot(wi));
+        L_dir = l_i * its.mesh->getBSDF()->eval(sampleLightRecord) * std::max(0.f, its.shFrame.n.dot(wi)) * tr;
     }
     return L_dir;
 }
