@@ -409,7 +409,7 @@ template <typename _PointType> struct TBoundingBox {
             }
         }
 
-        return true;
+        return ray.mint <= farT && nearT <= ray.maxt;
     }
 
     PointType min; ///< Component-wise minimum 

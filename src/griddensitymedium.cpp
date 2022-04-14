@@ -33,6 +33,8 @@ public:
         const BoundingBox3f b(Point3f(0, 0, 0), Point3f(1, 1, 1));
         float tMin, tMax;
         if (!b.rayIntersect(localRay, tMin, tMax)) return Color3f(1);
+        tMin = std::max(tMin, localRay.mint);
+        tMax = std::min(tMax, localRay.maxt);
 
         float t = tMin;
         float tr = 1;
@@ -57,6 +59,8 @@ public:
         const BoundingBox3f b(Point3f(0, 0, 0), Point3f(1, 1, 1));
         float tMin, tMax;
         if (!b.rayIntersect(localRay, tMin, tMax)) return Color3f(1);
+        tMin = std::max(tMin, localRay.mint);
+        tMax = std::min(tMax, localRay.maxt);
 
         float t = tMin;
         while (true) {

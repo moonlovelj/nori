@@ -11,7 +11,7 @@
 		<string name="densityFile" value="../scenes/volume/density.vol"/>
 		<transform name="toWorld">
 			<scale value="0.75,1,0.75"/>
-			<!-- <translate value="-10,-10,-0.5"/> -->
+			<translate value="0,0,0.2"/>
 		</transform>
 	</medium> 
 
@@ -28,7 +28,7 @@
 	</camera>
 
 	<sampler type="independent">
-		<integer name="sampleCount" value="64"/>
+		<integer name="sampleCount" value="32"/>
 	</sampler>
 
 	<mesh type="obj">
