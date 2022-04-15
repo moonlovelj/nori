@@ -32,18 +32,25 @@ private:
         }
 
         Intersection newIts;
-        Ray3f newRay(ray.o, ray.d, Epsilon, its.t);
-        Color3f tr_pdf = scene->getMedium()->sample(newRay, sampler, newIts);
-        if (newIts.isMedium()) {
-            newIts.p = newRay(newIts.t);
+        bool sampleMedium = false;
+        Color3f tr_pdf(1.f);
+        if (scene->getMedium()) {
+            Ray3f newRay(ray.o, ray.d, Epsilon, its.t);
+            tr_pdf = scene->getMedium()->sample(newRay, sampler, newIts);
+            if (newIts.isMedium()) {
+                newIts.p = newRay(newIts.t);
+                sampleMedium = true;
+            }
+        }
+
+        if (sampleMedium) {
             const Medium *medium = scene->getMedium();
             Point3f sampleMediumPoint = newIts.t * ray.d + ray.o;
             Color3f le = medium->getEmittance(sampleMediumPoint, -ray.d) * medium->sigmaA();
             if (sampler->next1D() > 0.95f) {
                 tr_pdf * le;
             }
-
-            Color3f L_dir = estimateDirect(newIts, -newRay.d, scene, sampler);
+            Color3f L_dir = estimateDirect(newIts, -ray.d, scene, sampler);
             Vector3f wo;
             Color3f phaseSample = medium->getPhase()->sample(-ray.d, wo, sampler->next2D());
             Ray3f nextRay(sampleMediumPoint, wo);
