@@ -50,22 +50,21 @@ public:
         return pdfR(bRec.wi, bRec.wo) + pdfT(bRec.wi, bRec.wo);
     }
 
-    /// Sample the BRDF
     Color3f sample(BSDFQueryRecord &bRec, const Point2f &_sample) const {
+        throw NoriException("MicrofacetDielectric sample must pass Sampler");
+    }
+
+    /// Sample the BRDF
+    Color3f sample(BSDFQueryRecord &bRec, Sampler *sampler) const {
         // Note: Once you have implemented the part that computes the scattered
         // direction, the last part of this function should simply return the
         // BRDF value divided by the solid angle density and multiplied by the
         // cosine factor from the reflection equation, i.e.
         // return eval(bRec) * Frame::cosTheta(bRec.wo) / pdf(bRec);
 
-        if (bRec.random1D < 0) {
-            std::cerr << "microfacetdielectric sample need a random \n";
-            return Color3f(0);
-        }
-
         if (Frame::cosTheta(bRec.wi) == 0.f) return Color3f(0);
 
-        Vector3f m = m_microfacetDistribution->sample_wh(bRec.wi, _sample);
+        Vector3f m = m_microfacetDistribution->sample_wh(bRec.wi, sampler->next2D());
         if ((Frame::cosTheta(bRec.wi) > 0.f ? m : -m).dot(bRec.wi) < 0) {
             return Color3f(0);
         }
@@ -73,7 +72,7 @@ public:
 
         float F = fresnel(m.dot(bRec.wi), m_extIOR, m_intIOR);
 
-        if (bRec.random1D <= F) {
+        if (sampler->next1D() <= F) {
             // reflect
             bRec.wo = reflect(bRec.wi, m);
             if (!sameHemisphere(bRec.wi, bRec.wo)) return Color3f(0);

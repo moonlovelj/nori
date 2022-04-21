@@ -63,7 +63,7 @@ private:
                 }
             } else {
                 // sample bsdf
-                BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d), sampler->next1D());
+                BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d));
                 its.mesh->getBSDF()->sample(sampleBRDFRecord, sampler->next2D());
                 float pdfBSDF = its.mesh->getBSDF()->pdf(sampleBRDFRecord);
                 float pdfLight = 0.f;
@@ -81,13 +81,13 @@ private:
 
                 }
             }
-            BSDFQueryRecord sampleIndirectBSDF(its.shFrame.toLocal(-ray.d), sampler->next1D());
+            BSDFQueryRecord sampleIndirectBSDF(its.shFrame.toLocal(-ray.d));
             l_ind = its.mesh->getBSDF()->sample(sampleIndirectBSDF, sampler->next2D()) *
                     Li(scene, sampler, Ray3f(its.p, its.shFrame.toWorld(sampleIndirectBSDF.wo), Epsilon,
                                              std::numeric_limits<float>::infinity()), false) / 0.95f;
 
         } else {
-            BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d), sampler->next1D());
+            BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d));
             Color3f L = its.mesh->getBSDF()->sample(sampleBRDFRecord, sampler->next2D());
             Ray3f new_ray(its.p, its.shFrame.toWorld(sampleBRDFRecord.wo));
             new_ray.mint = Epsilon;

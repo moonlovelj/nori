@@ -7,6 +7,7 @@
 #pragma once
 
 #include <nori/object.h>
+#include <nori/sampler.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -21,9 +22,6 @@ struct BSDFQueryRecord {
     /// Outgoing direction (in the local frame)
     Vector3f wo;
 
-    /// Random
-    float random1D = -1;
-
     /// Relative refractive index in the sampled direction
     float eta;
 
@@ -34,17 +32,10 @@ struct BSDFQueryRecord {
     BSDFQueryRecord(const Vector3f &wi)
         : wi(wi), eta(1.f), measure(EUnknownMeasure) { }
 
-    BSDFQueryRecord(const Vector3f &wi, float random)
-            : wi(wi), random1D(random), eta(1.f), measure(EUnknownMeasure) { }
-
     /// Create a new record for querying the BSDF
     BSDFQueryRecord(const Vector3f &wi,
             const Vector3f &wo, EMeasure measure)
         : wi(wi), wo(wo), eta(1.f), measure(measure) { }
-
-    BSDFQueryRecord(const Vector3f &wi,
-                    const Vector3f &wo, EMeasure measure, float random)
-            : wi(wi), wo(wo), random1D(random), eta(1.f), measure(measure) { }
 };
 
 /**
@@ -67,6 +58,10 @@ public:
      *         failed.
      */
     virtual Color3f sample(BSDFQueryRecord &bRec, const Point2f &sample) const = 0;
+
+    virtual Color3f sample(BSDFQueryRecord &bRec, Sampler *sampler) const {
+        sample(bRec, sampler->next2D());
+    }
 
     /**
      * \brief Evaluate the BSDF for a pair of directions and measure
