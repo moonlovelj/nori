@@ -70,7 +70,9 @@ public:
             case EBSDF:
                 m_bsdfs.push_back(static_cast<BSDF *>(obj));
                 break;
-
+            case ESampler:
+                m_sampler = static_cast<Sampler *>(obj);
+                break;
             default:
                 throw NoriException("ChiSquareTest::addChild(<%s>) is not supported!",
                     classTypeName(obj->getClassType()));
@@ -79,8 +81,10 @@ public:
 
     /// Execute the chi-square test
     void activate() {
+        if (m_sampler == nullptr) throw NoriException("m_sampler can not be null");
+
         int passed = 0, total = 0, res = m_cosThetaResolution*m_phiResolution;
-        pcg32 random; /* Pseudorandom number generator */
+        //pcg32 random; /* Pseudorandom number generator */
 
         std::unique_ptr<double[]> obsFrequencies(new double[res]);
         std::unique_ptr<double[]> expFrequencies(new double[res]);
@@ -97,10 +101,10 @@ public:
                 cout << "Testing: " << bsdf->toString() << endl;
                 ++total;
 
-                float cosTheta = random.nextFloat();
+                float cosTheta = m_sampler->next1D();
                 float sinTheta = std::sqrt(std::max((float) 0, 1-cosTheta*cosTheta));
                 float sinPhi, cosPhi;
-                sincosf(2.0f * M_PI * random.nextFloat(), &sinPhi, &cosPhi);
+                sincosf(2.0f * M_PI * m_sampler->next1D(), &sinPhi, &cosPhi);
                 Vector3f wi(cosPhi * sinTheta, sinPhi * sinTheta, cosTheta);
 
                 cout << "Accumulating " << m_sampleCount << " samples into a " << m_cosThetaResolution
@@ -110,10 +114,11 @@ public:
                 /* Generate many samples from the BSDF and create
                    a histogram / contingency table */
                 BSDFQueryRecord bRec(wi);
+                bRec.sampler = m_sampler;
                 for (int i=0; i<m_sampleCount; ++i) {
-                    Point2f sample(random.nextFloat(), random.nextFloat());
+                    //Point2f sample(m_sampler->next1D(), m_sampler->next1D());
                     //bRec.random1D = random.nextFloat();
-                    Color3f result = bsdf->sample(bRec, sample);
+                    Color3f result = bsdf->sample(bRec, m_sampler);
 
                     if ((result.array() == 0).all())
                         continue;
@@ -152,6 +157,7 @@ public:
                                         (float) cosTheta);
 
                             BSDFQueryRecord bRec(wi, wo, ESolidAngle);
+                            bRec.sampler = m_sampler;
                             return bsdf->pdf(bRec);
                         };
 
@@ -212,6 +218,7 @@ private:
     int m_testCount;
     float m_significanceLevel;
     std::vector<BSDF *> m_bsdfs;
+    Sampler *m_sampler;
 };
 
 NORI_REGISTER_CLASS(ChiSquareTest, "chi2test");

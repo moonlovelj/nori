@@ -28,6 +28,8 @@ struct BSDFQueryRecord {
     /// Measure associated with the sample
     EMeasure measure;
 
+    Sampler * sampler = nullptr;
+
     /// Create a new record for sampling the BSDF
     BSDFQueryRecord(const Vector3f &wi)
         : wi(wi), eta(1.f), measure(EUnknownMeasure) { }
@@ -60,7 +62,7 @@ public:
     virtual Color3f sample(BSDFQueryRecord &bRec, const Point2f &sample) const = 0;
 
     virtual Color3f sample(BSDFQueryRecord &bRec, Sampler *sampler) const {
-        sample(bRec, sampler->next2D());
+        return sample(bRec, sampler->next2D());
     }
 
     /**
