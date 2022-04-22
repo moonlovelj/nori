@@ -146,7 +146,9 @@ public:
         bRec.wo = sample(bRec.wi, scatteringOrder, sampler);
         bRec.measure = ESolidAngle;
 
-        return eval(bRec) / pdf(bRec);
+        float f = pdf(bRec);
+        if (f == 0) return Color3f(0);
+        return eval(bRec) / f;
     }
 
     Color3f eval(const BSDFQueryRecord &bRec) const override {
