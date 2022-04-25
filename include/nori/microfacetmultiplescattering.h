@@ -10,6 +10,8 @@
 
 #include <nori/bsdf.h>
 #include <nori/frame.h>
+#include <nori/warp.h>
+#include <nori/sampler.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -142,8 +144,32 @@ public:
         throw NoriException("This function should not be called!");
     }
     Color3f sample(BSDFQueryRecord &bRec, Sampler *sampler) const override {
+        if (Frame::cosTheta(bRec.wi) <= 0)
+            return Color3f(0.0f);
+
+//        bRec.measure = ESolidAngle;
+//
+//        /* Warp a uniformly distributed sample on [0,1]^2
+//           to a direction on a cosine-weighted hemisphere */
+//        bRec.wo = Warp::squareToCosineHemisphere(sampler->next2D());
+//
+//        /* Relative index of refraction: no change */
+//        bRec.eta = 1.0f;
+//
+//        /* eval() / pdf() * cos(theta) = albedo. There
+//           is no need to call these functions. */
+//        return Color3f(1);
+
         int scatteringOrder;
         bRec.wo = sample(bRec.wi, scatteringOrder, sampler);
+
+        //test_masking(bRec.wo, sampler);
+        //test_masking_shadowing(bRec.wi, bRec.wo, sampler);
+        //test_sample_phasefunction(bRec.wi, sampler);
+
+        if (bRec.wo == Vector3f(0,0,1)) {
+            return Color3f(0);
+        }
         bRec.measure = ESolidAngle;
 
         float f = pdf(bRec);
@@ -153,11 +179,206 @@ public:
 
     Color3f eval(const BSDFQueryRecord &bRec) const override {
         if (bRec.sampler == nullptr) throw NoriException("sampler can not be null");
-        return eval(bRec.wi, bRec.wo, bRec.sampler);
+        return bRec.wi.z() < bRec.wo.z() ? eval(bRec.wi, bRec.wo, bRec.sampler) :
+               eval(bRec.wo, bRec.wi, bRec.sampler) / Frame::cosTheta(bRec.wi) * Frame::cosTheta(bRec.wo);
     }
 
     virtual std::string toString() const override {
         return "";
+    }
+
+    void test_masking(const Vector3f &wo, Sampler *sampler) const
+    {
+        float G1 = 1.0f / (1.f + m_microsurfaceslope->Lambda(wo));
+
+        const int N = 100000;
+        double V = 0;
+        for (int i = 0; i < N ; ++i) {
+            const float U1 = sampler->next1D();
+            const float h = m_microsurfaceheight->invC1(U1);
+
+            const float U2 =  sampler->next1D();
+            const float h_wo = sampleHeight(wo, h, U2);
+
+            if (h_wo == std::numeric_limits<float>::max())
+                V += 1.0 / N;
+        }
+
+        std::cout <<" analytic = " << G1 << endl;
+        std::cout <<" stochastic = " << V << endl;
+    }
+
+    void test_masking_shadowing(const  Vector3f &wi, const Vector3f &wo, Sampler *sampler) const {
+        float G2 = 1.0f / (1.0f + m_microsurfaceslope->Lambda(wi) + m_microsurfaceslope->Lambda(wo));
+
+        const int N = 100000;
+        double V = 0;
+        for (int i = 0; i < N ; ++i) {
+            const float U1 = sampler->next1D();
+            const float h = m_microsurfaceheight->invC1(U1);
+            const float h_wi = sampleHeight(wi, h, sampler->next1D());
+            const float h_wo = sampleHeight(wo, h, sampler->next1D());
+            if (h_wi == std::numeric_limits<float>::max() && h_wo == std::numeric_limits<float>::max())
+                V += 1.0 / N;
+        }
+
+        std::cout <<" analytic = " << G2 << endl;
+        std::cout <<" stochastic = " << V << endl;
+    }
+
+    void test_norimalization_D_wi(const Vector3f &wi, Sampler *sampler) const
+    {
+
+        double value_quadrature = 0;
+        for(double theta_m=0 ; theta_m < 0.5*M_PI ; theta_m += 0.005){
+            for(double phi_m=0 ; phi_m < 2.0*M_PI ; phi_m += 0.005)
+            {
+                const Vector3f wm(cos(phi_m)*sin(theta_m), sin(phi_m)*sin(theta_m), cos(theta_m));
+                value_quadrature += 0.005*0.005*abs(sin(theta_m)) * (double)m_microsurfaceslope->D_wi(wi, wm);
+            }
+        }
+
+        // display
+        cout << "\\int␣D_wi(wm)␣dwm␣=␣\t\t" << value_quadrature << endl;
+    }
+
+    void test_sample_D_wi(const Vector3f &wi, Sampler *sampler) const {
+        double quadrature_int_x = 0;
+        double quadrature_int_y = 0;
+        double quadrature_int_z = 0;
+        double quadrature_int_x2 = 0;
+        double quadrature_int_y2 = 0;
+        double quadrature_int_z2 = 0;
+        for(double theta_m=0 ; theta_m < 0.5*M_PI ; theta_m += 0.005) {
+            for(double phi_m=0 ; phi_m < 2.0*M_PI ; phi_m += 0.005) {
+                const Vector3f wm(cos(phi_m)*sin(theta_m), sin(phi_m)*sin(theta_m), cos(theta_m));
+                const double d = 0.005*0.005*abs(sin(theta_m)) * (double)m_microsurfaceslope->D_wi(wi, wm);
+                quadrature_int_x += d * wm.x();
+                quadrature_int_y += d * wm.y();
+                quadrature_int_z += d * wm.z();
+                quadrature_int_x2 += d * wm.x() * wm.x();
+                quadrature_int_y2 += d * wm.y() * wm.y();
+                quadrature_int_z2 += d * wm.z() * wm.z();
+            }
+        }
+
+        double stochastic_int_x = 0;
+        double stochastic_int_y = 0;
+        double stochastic_int_z = 0;
+        double stochastic_int_x2 = 0;
+        double stochastic_int_y2 = 0;
+        double stochastic_int_z2 = 0;
+
+        for(int n=0 ; n<100000 ; ++n) {
+            const float U1 = sampler->next1D();
+            const float U2 = sampler->next1D();
+            const Vector3f wm = m_microsurfaceslope->sampleD_wi(wi, U1, U2);
+            stochastic_int_x += wm.x() / 100000.0;
+            stochastic_int_y += wm.y() / 100000.0;
+            stochastic_int_z += wm.z() / 100000.0;
+            stochastic_int_x2 += wm.x() * wm.x() / 100000.0;
+            stochastic_int_y2 += wm.y() * wm.y() / 100000.0;
+            stochastic_int_z2 += wm.z() * wm.z() / 100000.0;
+        }
+
+        std::cout << "quadrature␣\\int␣D_wi(wm)␣wm.x␣dwm␣=␣\t\t" << quadrature_int_x<< endl;
+        std::cout << "quadrature␣\\int␣D_wi(wm)␣wm.y␣dwm␣=␣\t\t" << quadrature_int_y<< endl;
+        std::cout << "quadrature␣\\int␣D_wi(wm)␣wm.z␣dwm␣=␣\t\t" << quadrature_int_z<< endl;
+        std::cout << "quadrature␣\\int␣D_wi(wm)␣wm.x^2␣dwm␣=␣\t\t" << quadrature_int_x2 << endl;
+        std::cout << "quadrature␣\\int␣D_wi(wm)␣wm.x^2␣dwm␣=␣\t\t" << quadrature_int_y2 << endl;
+        std::cout << "quadrature␣\\int␣D_wi(wm)␣wm.x^2␣dwm␣=␣\t\t" << quadrature_int_z2 << endl;
+        std::cout << endl;
+
+        std::cout << "stochastic␣\\int␣D_wi(wm)␣wm.x␣dwm␣=␣\t\t" << stochastic_int_x << endl;
+        std::cout << "stochastic␣\\int␣D_wi(wm)␣wm.y␣dwm␣=␣\t\t" << stochastic_int_y << endl;
+        std::cout << "stochastic␣\\int␣D_wi(wm)␣wm.z␣dwm␣=␣\t\t" << stochastic_int_z << endl;
+        std::cout << "stochastic␣\\int␣D_wi(wm)␣wm.x^2␣dwm␣=␣\t\t" << stochastic_int_x2 << endl;
+        std::cout << "stochastic␣\\int␣D_wi(wm)␣wm.x^2␣dwm␣=␣\t\t" << stochastic_int_y2 << endl;
+        std::cout << "stochastic␣\\int␣D_wi(wm)␣wm.x^2␣dwm␣=␣\t\t" << stochastic_int_z2 << endl;
+
+        std::cout<<" ===**********====\n";
+    }
+
+    void test_phase_function(const Vector3f &wi, Sampler *sampler) const {
+        // quadrature \int p(wi, wo) dwo
+        double value_quadrature = 0;
+        for(double theta_o=0 ; theta_o < M_PI ; theta_o += 0.005)
+        {
+            for(double phi_o=0 ; phi_o < 2.0*M_PI ; phi_o += 0.005)
+            {
+                const Vector3f wo(cos(phi_o)*sin(theta_o), sin(phi_o)*sin(theta_o), cos(theta_o));
+                value_quadrature += 0.005*0.005*abs(sin(theta_o)) * (double)evalPhaseFunction(wi, wo, sampler);
+            }
+        }
+
+// display
+        cout << "\\int␣p(wi,␣wo)␣dwo␣=␣\t\t" << value_quadrature << endl;
+    }
+
+    void test_sample_phasefunction(const Vector3f &wi, Sampler *sampler) const {
+        if(m_microsurfaceslope->projectedArea(wi) < 0.01f) {
+            cout << "Warning:␣the␣projected␣area␣is␣too␣small" << endl;
+            cout << "the␣ray␣cannot␣intersect␣the␣microsurface␣in␣this␣configuration" << endl;
+            cout << "and␣the␣phase␣function␣should␣not␣be␣called." << endl << endl;
+            throw NoriException("test_sample_phasefunction error \n");
+        }
+// quadrature with eval p(wi, wo)
+        double quadrature_int_x = 0;
+        double quadrature_int_y = 0;
+        double quadrature_int_z = 0;
+        double quadrature_int_x2 = 0;
+        double quadrature_int_y2 = 0;
+        double quadrature_int_z2 = 0;
+
+        for(double theta_o=0 ; theta_o < M_PI ; theta_o += 0.005){
+            for(double phi_o=0 ; phi_o < 2.0*M_PI ; phi_o += 0.005) {
+                const Vector3f wo(cos(phi_o)*sin(theta_o), sin(phi_o)*sin(theta_o), cos(theta_o));
+                const double d = 0.005*0.005*abs(sin(theta_o)) * (double)evalPhaseFunction(wi, wo, sampler);
+                quadrature_int_x += d * wo.x();
+                quadrature_int_y += d * wo.y();
+                quadrature_int_z += d * wo.z();
+                quadrature_int_x2 += d * wo.x() * wo.x();
+                quadrature_int_y2 += d * wo.y() * wo.y();
+                quadrature_int_z2 += d * wo.z() * wo.z();
+
+
+            }
+        }
+
+// sampling \p(wi, wo)
+        const int N = 100000;
+        double stochastic_int_x = 0;
+        double stochastic_int_y = 0;
+        double stochastic_int_z = 0;
+        double stochastic_int_x2 = 0;
+        double stochastic_int_y2 = 0;
+        double stochastic_int_z2 = 0;
+
+        for(int n=0 ; n<N ; ++n) {
+            const Vector3f wo = samplePhaseFunction(wi, sampler);
+            stochastic_int_x += wo.x() / (double) N;
+            stochastic_int_y += wo.y() / (double) N;
+            stochastic_int_z += wo.z() / (double) N;
+            stochastic_int_x2 += wo.x() * wo.x() / (double) N;
+            stochastic_int_y2 += wo.y() * wo.y() / (double) N;
+            stochastic_int_z2 += wo.z() * wo.z() / (double) N;
+        }
+
+// display
+        cout << "quadrature␣\\int␣p(wi,␣wo)␣wo.x␣dwo␣=␣\t\t" << quadrature_int_x << endl;
+        cout << "quadrature␣\\int␣p(wi,␣wo)␣wo.y␣dwo␣=␣\t\t" << quadrature_int_y << endl;
+        cout << "quadrature␣\\int␣p(wi,␣wo)␣wo.z␣dwo␣=␣\t\t" << quadrature_int_z << endl;
+        cout << "quadrature␣\\int␣p(wi,␣wo)␣wo.x^2␣dwo␣=␣\t" << quadrature_int_x2 << endl;
+        cout << "quadrature␣\\int␣p(wi,␣wo)␣wo.x^2␣dwo␣=␣\t" << quadrature_int_y2 << endl;
+        cout << "quadrature␣\\int␣p(wi,␣wo)␣wo.x^2␣dwo␣=␣\t" << quadrature_int_z2 << endl;
+        cout << endl;
+        cout << "stochastic␣\\int␣p(wi,␣wo)␣wo.x␣dwo␣=␣\t\t" << stochastic_int_x << endl;
+        cout << "stochastic␣\\int␣p(wi,␣wo)␣wo.y␣dwo␣=␣\t\t" << stochastic_int_y << endl;
+        cout << "stochastic␣\\int␣p(wi,␣wo)␣wo.z␣dwo␣=␣\t\t" << stochastic_int_z << endl;
+        cout << "stochastic␣\\int␣p(wi,␣wo)␣wo.x^2␣dwo␣=␣\t" << stochastic_int_x2 << endl;
+        cout << "stochastic␣\\int␣p(wi,␣wo)␣wo.x^2␣dwo␣=␣\t" << stochastic_int_y2 << endl;
+        cout << "stochastic␣\\int␣p(wi,␣wo)␣wo.x^2␣dwo␣=␣\t" << stochastic_int_z2 << endl;
+        cout << " *****=======********\n";
     }
 
 protected:
