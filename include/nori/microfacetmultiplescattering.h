@@ -166,21 +166,31 @@ public:
         //test_masking(bRec.wo, sampler);
         //test_masking_shadowing(bRec.wi, bRec.wo, sampler);
         //test_sample_phasefunction(bRec.wi, sampler);
+        // test_sample_bsdf(bRec.wi, sampler);
 
-        if (bRec.wo == Vector3f(0,0,1)) {
-            return Color3f(0);
-        }
+        if (!sameHemisphere(bRec.wo, bRec.wi)) return Color3f(0);
+
+        //if (m_microsurfaceslope->Lambda(bRec.wo) <= 0 || m_microsurfaceslope->Lambda(bRec.wi) <= 0) return Color3f(0);
+
         bRec.measure = ESolidAngle;
-
         float f = pdf(bRec);
         if (f == 0) return Color3f(0);
-        return eval(bRec) / f;
+
+        Color3f result = eval(bRec)/ f * Frame::cosTheta(bRec.wo);
+        return result;
+        //std::cout << result <<endl;
+//        if (!std::isfinite(result.x()) || !std::isfinite(result.y()) || !std::isfinite(result.z()))
+//            return Color3f(0);
+
+        //return Color3f(1);
     }
 
     Color3f eval(const BSDFQueryRecord &bRec) const override {
         if (bRec.sampler == nullptr) throw NoriException("sampler can not be null");
-        return bRec.wi.z() < bRec.wo.z() ? eval(bRec.wi, bRec.wo, bRec.sampler) :
-               eval(bRec.wo, bRec.wi, bRec.sampler) / Frame::cosTheta(bRec.wi) * Frame::cosTheta(bRec.wo);
+        if (bRec.wi.z() <= 0 || bRec.wo.z() <= 0 || bRec.measure != ESolidAngle) {
+            return Color3f(0);
+        }
+        return Color3f(eval(bRec.wi, bRec.wo, bRec.sampler) / Frame::cosTheta(bRec.wo));
     }
 
     virtual std::string toString() const override {
@@ -381,6 +391,69 @@ public:
         cout << " *****=======********\n";
     }
 
+    void test_sample_bsdf(const Vector3f &wi, Sampler *sampler) const {
+
+        // quadrature \int f(wi, wo) f(wo) dwo
+        double quadrature_int_x = 0;
+        double quadrature_int_y = 0;
+        double quadrature_int_z = 0;
+        double quadrature_int_x2 = 0;
+        double quadrature_int_y2 = 0;
+        double quadrature_int_z2 = 0;
+        for(double theta_o=0 ; theta_o < M_PI ; theta_o += 0.005) {
+            for(double phi_o=0 ; phi_o < 2.0*M_PI ; phi_o += 0.005) {
+                const Vector3f wo(cos(phi_o)*sin(theta_o), sin(phi_o)*sin(theta_o), cos(theta_o));
+                // stochastic evaluation
+                const int N = 10;
+                double value_current = 0;
+                for(int n=0 ; n<N ; ++n) {
+                    value_current += (double) eval(wi, wo, sampler) / (double) N;
+                }
+                    const double d = 0.005*0.005*abs(sin(theta_o)) * value_current;
+                    quadrature_int_x += d * wo.x();
+                    quadrature_int_y += d * wo.y();
+                    quadrature_int_z += d * wo.z();
+                    quadrature_int_x2 += d * wo.x() *  wo.x();
+                    quadrature_int_y2 += d * wo.y() *  wo.y();
+                    quadrature_int_z2 += d * wo.z() *  wo.z();
+
+            }
+        }
+
+// sampling \int f_p(wo) f(wo) dwo
+        const int N = 100000;
+        double stochastic_int_x = 0;
+        double stochastic_int_y = 0;
+        double stochastic_int_z = 0;
+        double stochastic_int_x2 = 0;
+        double stochastic_int_y2 = 0;
+        double stochastic_int_z2 = 0;
+        for(int n=0 ; n<N ; ++n) {
+            const Vector3f wo = sample(wi, sampler);
+            stochastic_int_x += wo.x() / (double) N;
+            stochastic_int_y += wo.y() / (double) N;
+            stochastic_int_z += wo.z() / (double) N;
+            stochastic_int_x2 += wo.x() * wo.x() / (double) N;
+            stochastic_int_y2 += wo.y() * wo.y() / (double) N;
+            stochastic_int_z2 += wo.z() * wo.z() / (double) N;
+        }
+
+        cout << "******************************************************\n";
+        cout << "quadrature␣\\int␣f_p(wo)␣wo.x␣dwo␣=␣\t\t" << quadrature_int_x << endl;
+        cout << "quadrature␣\\int␣f_p(wo)␣wo.y␣dwo␣=␣\t\t" << quadrature_int_y << endl;
+        cout << "quadrature␣\\int␣f_p(wo)␣wo.z␣dwo␣=␣\t\t" << quadrature_int_z << endl;
+        cout << "quadrature␣\\int␣f_p(wo)␣wo.x^2␣dwo␣=␣\t\t" << quadrature_int_x2 << endl;
+        cout << "quadrature␣\\int␣f_p(wo)␣wo.y^2␣dwo␣=␣\t\t" << quadrature_int_y2 << endl;
+        cout << "quadrature␣\\int␣f_p(wo)␣wo.z^2␣dwo␣=␣\t\t" << quadrature_int_z2 << endl;
+        cout << "stochastic␣\\int␣f_p(wo)␣wo.x␣dwo␣=␣\t\t" << stochastic_int_x << endl;
+        cout << "stochastic␣\\int␣f_p(wo)␣wo.y␣dwo␣=␣\t\t" << stochastic_int_y << endl;
+        cout << "stochastic␣\\int␣f_p(wo)␣wo.z␣dwo␣=␣\t\t" << stochastic_int_z << endl;
+        cout << "stochastic␣\\int␣f_p(wo)␣wo.x^2␣dwo␣=␣\t\t" << stochastic_int_x2 << endl;
+        cout << "stochastic␣\\int␣f_p(wo)␣wo.y^2␣dwo␣=␣\t\t" << stochastic_int_y2 << endl;
+        cout << "stochastic␣\\int␣f_p(wo)␣wo.z^2␣dwo␣=␣\t\t" << stochastic_int_z2 << endl;
+        cout << "******************************************************\n";
+    }
+
 protected:
     // masking function
     float G_1(const Vector3f& wi) const;
@@ -434,7 +507,20 @@ public:
     virtual float evalSingleScattering(const Vector3f& wi, const Vector3f& wo, Sampler *sampler) const override ;
 
     float pdf(const BSDFQueryRecord &bRec) const override {
-        return 0;
+        if (bRec.measure != ESolidAngle) {
+            return 0.f;
+        }
+        if (Frame::cosTheta(bRec.wi) <= 0 ||
+            Frame::cosTheta(bRec.wo) <= 0) {
+            return 0.f;
+        }
+
+        if (m_microsurfaceslope->Lambda(bRec.wo) <= 0 || m_microsurfaceslope->Lambda(bRec.wi) <= 0) {
+            return 0.f;
+        }
+
+        Vector3f wh = (bRec.wi + bRec.wo).normalized();
+        return m_microsurfaceslope->D(wh) / (1.0f + m_microsurfaceslope->Lambda(bRec.wi)) / (4.0f * Frame::cosTheta(bRec.wo)) + Frame::cosTheta(bRec.wo);
     }
 };
 NORI_REGISTER_CLASS(MicrosurfaceConductor, "mulmicrofacetconductor");
@@ -510,7 +596,24 @@ public:
             Frame::cosTheta(bRec.wo) <= 0) {
             return 0.f;
         }
-        return Frame::cosTheta(bRec.wo) * M_1_PI;
+
+//        if (m_microsurfaceslope->Lambda(bRec.wo) <= 0 || m_microsurfaceslope->Lambda(bRec.wi) <= 0) {
+//            return 0.f;
+//        }
+////
+////        if (m_microsurfaceslope->projectedArea(bRec.wi) < 0.0001f || m_microsurfaceslope->projectedArea(bRec.wo)  < 0.0001f ) {
+////            return 0.f;
+////        }
+////
+//        Vector3f wm = m_microsurfaceslope->sampleD_wi(bRec.wi, bRec.sampler->next1D(), bRec.sampler->next1D());
+//
+//        if (m_microsurfaceslope->D_wi(bRec.wi, wm) == 0) return 0;
+
+//        if (m_microsurfaceslope->sampleD_wi(bRec.wi, bRec.sampler->next1D(),  bRec.sampler->next1D()).z() > 0.9999f ) {
+//            return 0;
+//        }
+
+        return INV_PI * Frame::cosTheta(bRec.wo);
     }
 
 protected:

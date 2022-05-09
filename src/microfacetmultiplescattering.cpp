@@ -17,12 +17,12 @@ NORI_NAMESPACE_BEGIN
 
 static float sign(float a)
 {
-    return a > 0 ? 1 : 0;
+    return a > 0 ? 1 : -1;
 }
 
 static bool IsFiniteNumber(float x)
 {
-    return std::isfinite(x);
+    return (x <= std::numeric_limits<float>::max() && x >= -std::numeric_limits<float>::max());
 }
 
 static double erf(double x)
@@ -438,7 +438,7 @@ Vector2f MicrosurfaceSlopeGGX::sampleP22_11(const float theta_i, const float U, 
 
 Microsurface::Microsurface(const PropertyList &props) {
     bool height_uniform = props.getBoolean("height_uniform", true);
-    bool slope_beckmann = props.getBoolean("slope_beckmann", true);
+    bool slope_beckmann = props.getBoolean("slope_beckmann", false);
     float alpha_x = props.getFloat("alpha");
     float alpha_y = props.getFloat("alpha");
     if (height_uniform) {

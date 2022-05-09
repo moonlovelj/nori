@@ -28,7 +28,8 @@ public:
         }
 
         BSDFQueryRecord bsdfRec(its.shFrame.toLocal(-ray.d));
-        Color3f L = its.mesh->getBSDF()->sample(bsdfRec, sampler->next2D());
+        bsdfRec.sampler = sampler;
+        Color3f L = its.mesh->getBSDF()->sample(bsdfRec, sampler);
         Ray3f new_ray(its.p, its.shFrame.toWorld(bsdfRec.wo));
         new_ray.mint = Epsilon;
         return sampleColor + Li(scene, sampler, new_ray) * L / 0.95f;
