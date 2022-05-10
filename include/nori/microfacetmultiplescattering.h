@@ -144,8 +144,8 @@ public:
         throw NoriException("This function should not be called!");
     }
     Color3f sample(BSDFQueryRecord &bRec, Sampler *sampler) const override {
-        if (Frame::cosTheta(bRec.wi) <= 0)
-            return Color3f(0.0f);
+//        if (Frame::cosTheta(bRec.wi) <= 0)
+//            return Color3f(0.0f);
 
 //        bRec.measure = ESolidAngle;
 //
@@ -168,15 +168,16 @@ public:
         //test_sample_phasefunction(bRec.wi, sampler);
         // test_sample_bsdf(bRec.wi, sampler);
 
-        if (!sameHemisphere(bRec.wo, bRec.wi)) return Color3f(0);
+        //if (!sameHemisphere(bRec.wo, bRec.wi)) return Color3f(0);
 
         //if (m_microsurfaceslope->Lambda(bRec.wo) <= 0 || m_microsurfaceslope->Lambda(bRec.wi) <= 0) return Color3f(0);
 
         bRec.measure = ESolidAngle;
         float f = pdf(bRec);
-        if (f == 0) return Color3f(0);
+        if (f == 0 || std::isinf(f)) return Color3f(0);
 
-        Color3f result = eval(bRec)/ f * Frame::cosTheta(bRec.wo);
+        Color3f result = eval(bRec)/ f * Frame::absCosTheta(bRec.wo);
+        //std::cout <<result << endl;
         return result;
         //std::cout << result <<endl;
 //        if (!std::isfinite(result.x()) || !std::isfinite(result.y()) || !std::isfinite(result.z()))
@@ -187,10 +188,11 @@ public:
 
     Color3f eval(const BSDFQueryRecord &bRec) const override {
         if (bRec.sampler == nullptr) throw NoriException("sampler can not be null");
-        if (bRec.wi.z() <= 0 || bRec.wo.z() <= 0 || bRec.measure != ESolidAngle) {
-            return Color3f(0);
-        }
-        return Color3f(eval(bRec.wi, bRec.wo, bRec.sampler) / Frame::cosTheta(bRec.wo));
+//        if (bRec.wi.z() <= 0 || bRec.wo.z() <= 0 || bRec.measure != ESolidAngle) {
+//            return Color3f(0);
+//        }
+
+        return Color3f(eval(bRec.wi, bRec.wo, bRec.sampler) / Frame::absCosTheta(bRec.wo));
     }
 
     virtual std::string toString() const override {
@@ -515,12 +517,8 @@ public:
             return 0.f;
         }
 
-        if (m_microsurfaceslope->Lambda(bRec.wo) <= 0 || m_microsurfaceslope->Lambda(bRec.wi) <= 0) {
-            return 0.f;
-        }
-
         Vector3f wh = (bRec.wi + bRec.wo).normalized();
-        return m_microsurfaceslope->D(wh) / (1.0f + m_microsurfaceslope->Lambda(bRec.wi)) / (4.0f * Frame::cosTheta(bRec.wo)) + Frame::cosTheta(bRec.wo);
+        return m_microsurfaceslope->D(wh) * Frame::cosTheta(wh) / (1.0f + m_microsurfaceslope->Lambda(bRec.wi)) / (4.0f * wh.dot(bRec.wo)) + Frame::cosTheta(bRec.wo);
     }
 };
 NORI_REGISTER_CLASS(MicrosurfaceConductor, "mulmicrofacetconductor");
@@ -530,6 +528,8 @@ class MicrosurfaceDielectric : public Microsurface
 {
 public:
     float m_eta;
+    float m_inIOR;
+    float m_exIOR;
 public:
     MicrosurfaceDielectric(const PropertyList & props) : Microsurface(props)
     {
@@ -540,6 +540,8 @@ public:
         const float exIOR = props.getFloat("extIOR", 1.000277f);
 
         m_eta = inIOR / exIOR;
+        m_inIOR = inIOR;
+        m_exIOR = exIOR;
     }
 //    MicrosurfaceDielectric(const bool height_uniform, // uniform or Gaussian
 //                           const bool slope_beckmann, // Beckmann or GGX
@@ -561,7 +563,28 @@ public:
     virtual Vector3f sample(const Vector3f& wi, int& scatteringOrder, Sampler *sampler) const override ;
 
     float pdf(const BSDFQueryRecord &bRec) const override {
-        return 0;
+        if (bRec.measure != ESolidAngle) {
+            return 0.f;
+        }
+
+        Vector3f wh;
+        float dwh_dwo;
+        bool reflect = sameHemisphere(bRec.wi, bRec.wo);
+        if (reflect) {
+            wh = (bRec.wi + bRec.wo).normalized();
+            dwh_dwo = 1.0f / (4.0f * bRec.wo.dot(wh));
+
+        } else {
+            float eta = Frame::cosTheta(bRec.wi) > 0 ? m_eta : 1.f / m_eta;
+            wh = -(eta * bRec.wo + bRec.wi).normalized();
+            float sqrtDenom = bRec.wi.dot(wh) + eta * bRec.wo.dot(wh);
+            dwh_dwo = eta * eta * std::fabsf(bRec.wo.dot(wh)) / (sqrtDenom * sqrtDenom);
+        }
+
+        float prob = m_microsurfaceslope->D(wh.z() > 0 ? wh : -wh) * Frame::absCosTheta(wh) / (1.0f + bRec.wi.z() > 0 ? m_microsurfaceslope->Lambda(bRec.wi) : m_microsurfaceslope->Lambda(-bRec.wi)) * dwh_dwo;
+        float F = fresnel(wh.dot(bRec.wi), m_exIOR, m_inIOR);
+        prob *= reflect ? F : (1-F);
+        return std::abs(prob) + Frame::absCosTheta(bRec.wo);
     }
 
 protected:
@@ -596,22 +619,6 @@ public:
             Frame::cosTheta(bRec.wo) <= 0) {
             return 0.f;
         }
-
-//        if (m_microsurfaceslope->Lambda(bRec.wo) <= 0 || m_microsurfaceslope->Lambda(bRec.wi) <= 0) {
-//            return 0.f;
-//        }
-////
-////        if (m_microsurfaceslope->projectedArea(bRec.wi) < 0.0001f || m_microsurfaceslope->projectedArea(bRec.wo)  < 0.0001f ) {
-////            return 0.f;
-////        }
-////
-//        Vector3f wm = m_microsurfaceslope->sampleD_wi(bRec.wi, bRec.sampler->next1D(), bRec.sampler->next1D());
-//
-//        if (m_microsurfaceslope->D_wi(bRec.wi, wm) == 0) return 0;
-
-//        if (m_microsurfaceslope->sampleD_wi(bRec.wi, bRec.sampler->next1D(),  bRec.sampler->next1D()).z() > 0.9999f ) {
-//            return 0;
-//        }
 
         return INV_PI * Frame::cosTheta(bRec.wo);
     }

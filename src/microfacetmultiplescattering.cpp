@@ -697,7 +697,7 @@ float MicrosurfaceDielectric::evalPhaseFunction(const Vector3f& wi, const Vector
 Vector3f MicrosurfaceDielectric::samplePhaseFunction(const Vector3f& wi, Sampler *sampler) const
 {
     bool wo_outside;
-    return samplePhaseFunction(wi, true, wo_outside, sampler);
+    return samplePhaseFunction(wi, wi.z() > 0, wo_outside, sampler);
 }
 
 Vector3f MicrosurfaceDielectric::samplePhaseFunction(const Vector3f& wi, const bool wi_outside, bool& wo_outside, Sampler *sampler) const
@@ -773,7 +773,7 @@ float MicrosurfaceDielectric::eval(const Vector3f& wi, const Vector3f& wo, Sampl
     // init
     Vector3f wr = -wi;
     float hr = 1.0f + m_microsurfaceheight->invC1(0.999f);
-    bool outside = true;
+    bool outside = wi.z() > 0;
 
     float sum = 0.0f;
 
@@ -815,7 +815,7 @@ Vector3f MicrosurfaceDielectric::sample(const Vector3f& wi, int& scatteringOrder
     // init
     Vector3f wr = -wi;
     float hr = 1.0f + m_microsurfaceheight->invC1(0.999f);
-    bool outside = true;
+    bool outside = wi.z() > 0;
 
     // random walk
     scatteringOrder = 0;
