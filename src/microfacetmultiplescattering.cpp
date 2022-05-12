@@ -868,7 +868,6 @@ void buildOrthonormalBasis(Vector3f& omega_1, Vector3f& omega_2, const Vector3f&
     }
 }
 
-
 Vector3f MicrosurfaceDiffuse::samplePhaseFunction(const Vector3f& wi, Sampler *sampler) const
 {
     const float U1 = sampler->next1D();
