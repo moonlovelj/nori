@@ -132,5 +132,5 @@ private:
     Color3f m_kd;
 };
 
-NORI_REGISTER_CLASS(Microfacet, "microfacet");
+NORI_REGISTER_CLASS(Microfacet, "roughplastic");
 NORI_NAMESPACE_END

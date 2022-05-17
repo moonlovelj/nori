@@ -188,5 +188,5 @@ private:
     std::shared_ptr<MicrofacetDistribution> m_microfacetDistribution;
 };
 
-NORI_REGISTER_CLASS(MicrofacetDielectric, "microfacetdielectric");
+NORI_REGISTER_CLASS(MicrofacetDielectric, "roughdielectric");
 NORI_NAMESPACE_END

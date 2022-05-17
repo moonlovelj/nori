@@ -51,9 +51,9 @@ public:
 //        if (absCosThetaH == 0.f) return 0;
 
         float D = m_microfacetDistribution->D(wh, wi);
-        float F = fresnel(wh.dot(wi), m_extIOR, m_intIOR);
+        //float F = fresnel(wh.dot(wo), m_extIOR, m_intIOR);
         float G = m_microfacetDistribution->G(wi, wo, wh);
-        return D * F * G / (4 * absCosThetaI * absCosThetaO);
+        return Color3f(D * G / (4 * absCosThetaI * absCosThetaO));
     }
 
     /// Evaluate the sampling density of \ref sample() wrt. solid angles
@@ -124,5 +124,5 @@ private:
     std::shared_ptr<MicrofacetDistribution> m_microfacetDistribution;
 };
 
-NORI_REGISTER_CLASS(MicrofacetReflection, "microfacetreflection");
+NORI_REGISTER_CLASS(MicrofacetReflection, "roughconductor");
 NORI_NAMESPACE_END
