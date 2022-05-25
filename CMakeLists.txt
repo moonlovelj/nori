@@ -113,7 +113,7 @@ add_executable(nori
         src/homogeneousmedium.cpp
         src/path_volume.cpp
         src/griddensitymedium.cpp
-        src/integrator.cpp include/nori/microfacetmultiplescattering.h src/microfacetmultiplescattering.cpp)
+        src/integrator.cpp)
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
 

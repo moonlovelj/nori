@@ -29,8 +29,8 @@ public:
         if (!bsdf->isDiffuse()) {
             if (sampler->next1D() > 0.95f) return l_e;
 
-            BSDFQueryRecord bsdf_query_record(its.shFrame.toLocal(-ray.d));
-            Color3f sampleBSDF = bsdf->sample(bsdf_query_record, sampler->next2D()) / 0.95f;
+            BSDFQueryRecord bsdf_query_record(its.shFrame.toLocal(-ray.d), sampler);
+            Color3f sampleBSDF = bsdf->sample(bsdf_query_record) / 0.95f;
             auto newRay = Ray3f(its.p, its.shFrame.toWorld(bsdf_query_record.wo).normalized());
             newRay.mint = Epsilon;
             auto next_sample = Li(scene, sampler, newRay);
@@ -46,7 +46,7 @@ public:
         if (!scene->illuminatedEachOther(its.p, sampleLightRecord.point)) {
             return l_e;
         }
-        BSDFQueryRecord bsdf_record(its.shFrame.toLocal(wi), its.shFrame.toLocal(-ray.d), ESolidAngle);
+        BSDFQueryRecord bsdf_record(its.shFrame.toLocal(wi), its.shFrame.toLocal(-ray.d), ESolidAngle, sampler);
         l_dir = l_i * its.mesh->getBSDF()->eval(bsdf_record) * std::max(0.f, its.shFrame.n.dot(wi)) * lights.size();
 
         return l_e + l_dir;

@@ -31,13 +31,13 @@ struct BSDFQueryRecord {
     Sampler * sampler = nullptr;
 
     /// Create a new record for sampling the BSDF
-    BSDFQueryRecord(const Vector3f &wi)
-        : wi(wi), eta(1.f), measure(EUnknownMeasure) { }
+    BSDFQueryRecord(const Vector3f &wi, Sampler *sampler)
+        : wi(wi), eta(1.f), measure(EUnknownMeasure), sampler(sampler) { }
 
     /// Create a new record for querying the BSDF
     BSDFQueryRecord(const Vector3f &wi,
-            const Vector3f &wo, EMeasure measure)
-        : wi(wi), wo(wo), eta(1.f), measure(measure) { }
+            const Vector3f &wo, EMeasure measure, Sampler *sampler)
+        : wi(wi), wo(wo), eta(1.f), measure(measure), sampler(sampler) { }
 };
 
 /**
@@ -61,8 +61,8 @@ public:
      */
     virtual Color3f sample(BSDFQueryRecord &bRec, const Point2f &sample) const = 0;
 
-    virtual Color3f sample(BSDFQueryRecord &bRec, Sampler *sampler) const {
-        return sample(bRec, sampler->next2D());
+    virtual Color3f sample(BSDFQueryRecord &bRec) const {
+        return sample(bRec, bRec.sampler->next2D());
     }
 
     /**

@@ -54,8 +54,7 @@ private:
                     float pdfLight =
                             pLight->pdf(eRec) * (eRec.point - its.p).squaredNorm() / std::fabsf(eRec.normal.dot(-wi));
                     BSDFQueryRecord sampleLightRecord(its.shFrame.toLocal(-ray.d), its.shFrame.toLocal(wi),
-                                                      ESolidAngle);
-                    sampleLightRecord.sampler = sampler;
+                                                      ESolidAngle, sampler);
                     float pdfBSDF = its.mesh->getBSDF()->pdf(sampleLightRecord);
                     L_dir = pLight->eval(eRec) *
                             its.mesh->getBSDF()->eval(sampleLightRecord) * std::max(0.f, its.shFrame.n.dot(wi))
@@ -64,9 +63,8 @@ private:
                 }
             } else {
                 // sample bsdf
-                BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d));
-                sampleBRDFRecord.sampler = sampler;
-                its.mesh->getBSDF()->sample(sampleBRDFRecord, sampler);
+                BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d), sampler);
+                its.mesh->getBSDF()->sample(sampleBRDFRecord);
                 float pdfBSDF = its.mesh->getBSDF()->pdf(sampleBRDFRecord);
                 float pdfLight = 0.f;
                 Ray3f nextRay(its.p, its.shFrame.toWorld(sampleBRDFRecord.wo), Epsilon,
@@ -83,16 +81,14 @@ private:
 
                 }
             }
-            BSDFQueryRecord sampleIndirectBSDF(its.shFrame.toLocal(-ray.d));
-            sampleIndirectBSDF.sampler = sampler;
-            l_ind = its.mesh->getBSDF()->sample(sampleIndirectBSDF, sampler) *
+            BSDFQueryRecord sampleIndirectBSDF(its.shFrame.toLocal(-ray.d), sampler);
+            l_ind = its.mesh->getBSDF()->sample(sampleIndirectBSDF) *
                     Li(scene, sampler, Ray3f(its.p, its.shFrame.toWorld(sampleIndirectBSDF.wo), Epsilon,
                                              std::numeric_limits<float>::infinity()), false) / 0.95f;
 
         } else {
-            BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d));
-            sampleBRDFRecord.sampler = sampler;
-            Color3f L = its.mesh->getBSDF()->sample(sampleBRDFRecord, sampler);
+            BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d), sampler);
+            Color3f L = its.mesh->getBSDF()->sample(sampleBRDFRecord);
             Ray3f new_ray(its.p, its.shFrame.toWorld(sampleBRDFRecord.wo));
             new_ray.mint = Epsilon;
             l_ind = Li(scene, sampler, new_ray, true) * L / 0.95f;

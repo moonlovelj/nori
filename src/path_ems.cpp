@@ -47,15 +47,13 @@ private:
 	  Color3f l_i = pLight->sample(its.p, eRec, sampler->next2D());
 	  Vector3f wi = (eRec.point - its.p).normalized();
 	  if (scene->illuminatedEachOther(its.p, eRec.point)) {
-		BSDFQueryRecord sampleLightRecord(its.shFrame.toLocal(-ray.d), its.shFrame.toLocal(wi),  ESolidAngle);
-          sampleLightRecord.sampler = sampler;
+		BSDFQueryRecord sampleLightRecord(its.shFrame.toLocal(-ray.d), its.shFrame.toLocal(wi),  ESolidAngle, sampler);
 		L_dir = l_i * its.mesh->getBSDF()->eval(sampleLightRecord) * std::max(0.f, its.shFrame.n.dot(wi)) * lights.size() / 0.95f;
 	  }
 	}
 
-	BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d));
-      sampleBRDFRecord.sampler = sampler;
-	Color3f L = its.mesh->getBSDF()->sample(sampleBRDFRecord, sampler);
+	BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d), sampler);
+	Color3f L = its.mesh->getBSDF()->sample(sampleBRDFRecord);
 	Ray3f new_ray(its.p, its.shFrame.toWorld(sampleBRDFRecord.wo));
 	new_ray.mint = Epsilon;
 	Color3f l_ind = Li(scene, sampler, new_ray, its.mesh->getBSDF()->isDiffuse() ? false : true) * L / 0.95f;

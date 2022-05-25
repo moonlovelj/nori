@@ -96,7 +96,7 @@ struct WarpTest {
     std::unique_ptr<double[]> obsFrequencies, expFrequencies;
 
     WarpTest(WarpType warpType_, float parameterValue_, BSDF *bsdf_ = nullptr,
-             BSDFQueryRecord bRec_ = BSDFQueryRecord(nori::Vector3f()),
+             BSDFQueryRecord bRec_ = BSDFQueryRecord(nori::Vector3f(), nullptr),
              int xres_ = kDefaultXres, int yres_ = kDefaultYres)
         : warpType(warpType_), parameterValue(parameterValue_), bsdf(bsdf_),
           bRec(bRec_), xres(xres_), yres(yres_) {
@@ -296,7 +296,7 @@ struct WarpTest {
         nori::Vector3f wi(std::sin(bsdfAngle), 0.f,
                     std::max(std::cos(bsdfAngle), 1e-4f));
         wi = wi.normalized();
-        BSDFQueryRecord bRec(wi);
+        BSDFQueryRecord bRec(wi, nullptr);
         return { brdf, bRec };
     }
 };
@@ -396,7 +396,7 @@ public:
 class WarpTestScreen : public Screen {
 public:
 
-    WarpTestScreen(): Screen(Vector2i(800, 600), "warptest: Sampling and Warping"), m_bRec(nori::Vector3f()) {
+    WarpTestScreen(): Screen(Vector2i(800, 600), "warptest: Sampling and Warping"), m_bRec(nori::Vector3f(), nullptr) {
         inc_ref();
         m_drawHistogram = false;
         initializeGUI();
@@ -968,7 +968,7 @@ int main(int argc, char **argv) {
     WarpType warpType;
     float paramValue, param2Value;
     std::unique_ptr<BSDF> bsdf;
-    auto bRec = BSDFQueryRecord(nori::Vector3f());
+    auto bRec = BSDFQueryRecord(nori::Vector3f(), nullptr);
     std::tie(warpType, paramValue, param2Value) = parse_arguments(argc, argv);
     if (warpType == MicrofacetBRDF) {
         float bsdfAngle = M_PI * 0.f;

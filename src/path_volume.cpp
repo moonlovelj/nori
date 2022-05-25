@@ -62,8 +62,8 @@ private:
                 return tr_pdf * le;
             }
 
-            BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d));
-            Color3f bsdf = its.mesh->getBSDF()->sample(sampleBRDFRecord, sampler->next2D());
+            BSDFQueryRecord sampleBRDFRecord(its.shFrame.toLocal(-ray.d), sampler);
+            Color3f bsdf = its.mesh->getBSDF()->sample(sampleBRDFRecord);
             Ray3f nextRay(its.p, its.shFrame.toWorld(sampleBRDFRecord.wo));
 
             if (its.mesh->getBSDF()->isDiffuse()) {

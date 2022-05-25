@@ -55,7 +55,7 @@ public:
     }
 
     /// Sample the BRDF
-    Color3f sample(BSDFQueryRecord &bRec, Sampler *sampler) const {
+    Color3f sample(BSDFQueryRecord &bRec) const {
         // Note: Once you have implemented the part that computes the scattered
         // direction, the last part of this function should simply return the
         // BRDF value divided by the solid angle density and multiplied by the
@@ -64,7 +64,7 @@ public:
 
         if (Frame::cosTheta(bRec.wi) == 0.f) return Color3f(0);
 
-        Vector3f m = m_microfacetDistribution->sample_wh(bRec.wi, sampler->next2D());
+        Vector3f m = m_microfacetDistribution->sample_wh(bRec.wi, bRec.sampler->next2D());
         if ((Frame::cosTheta(bRec.wi) > 0.f ? m : -m).dot(bRec.wi) < 0) {
             return Color3f(0);
         }
@@ -72,7 +72,7 @@ public:
 
         float F = fresnel(m.dot(bRec.wi), m_extIOR, m_intIOR);
 
-        if (sampler->next1D() <= F) {
+        if (bRec.sampler->next1D() <= F) {
             // reflect
             bRec.wo = reflect(bRec.wi, m);
             if (!sameHemisphere(bRec.wi, bRec.wo)) return Color3f(0);

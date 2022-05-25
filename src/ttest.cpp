@@ -76,7 +76,9 @@ public:
             case EBSDF:
                 m_bsdfs.push_back(static_cast<BSDF *>(obj));
                 break;
-
+            case ESampler:
+                m_sampler = static_cast<Sampler *>(obj);
+                break;
             case EScene:
                 m_scenes.push_back(static_cast<Scene *>(obj));
                 break;
@@ -89,8 +91,10 @@ public:
 
     /// Invoke a series of t-tests on the provided input
     void activate() {
+        if (m_sampler == nullptr) {
+            throw NoriException("StudentsTTest must be provided a sampler!");
+        }
         int total = 0, passed = 0;
-        pcg32 random;
 
         if (!m_bsdfs.empty()) {
             if (m_references.size() * m_bsdfs.size() != m_angles.size())
@@ -108,13 +112,12 @@ public:
                     cout << "Testing (angle=" << angle << "): " << bsdf->toString() << endl;
                     ++total;
 
-                    BSDFQueryRecord bRec(sphericalDirection(degToRad(angle), 0));
+                    BSDFQueryRecord bRec(sphericalDirection(degToRad(angle), 0), m_sampler);
 
                     cout << "Drawing " << m_sampleCount << " samples .. " << endl;
                     double mean=0, variance = 0;
                     for (int k=0; k<m_sampleCount; ++k) {
-                        Point2f sample(random.nextFloat(), random.nextFloat());
-                        double result = (double) bsdf->sample(bRec, sample).getLuminance();
+                        double result = (double) bsdf->sample(bRec).getLuminance();
 
                         /* Numerically robust online variance estimation using an
                            algorithm proposed by Donald Knuth (TAOCP vol.2, 3rd ed., p.232) */
@@ -204,6 +207,7 @@ private:
     std::vector<float> m_references;
     float m_significanceLevel;
     int m_sampleCount;
+    Sampler *m_sampler;
 };
 
 NORI_REGISTER_CLASS(StudentsTTest, "ttest");
