@@ -11,7 +11,7 @@
 		<string name="densityFile" value="../scenes/volume/density.vol"/>
 		<transform name="toWorld">
 			<scale value="0.75,1,0.75"/>
-			<translate value="0,0,0.2"/>
+			<translate value="-0.1,0,-0.2"/>
 		</transform>
 	</medium> 
 
@@ -28,7 +28,7 @@
 	</camera>
 
 	<sampler type="independent">
-		<integer name="sampleCount" value="32"/>
+		<integer name="sampleCount" value="1024"/>
 	</sampler>
 
 	<mesh type="obj">
@@ -57,17 +57,20 @@
 
 	<mesh type="obj">
 		<string name="filename" value="meshes/sphere1.obj"/>
-
-		<bsdf type="diffuse">
-			<color name="albedo" value="0.630 0.065 0.05"/>
+		<bsdf type="roughconductor">
+			<float name="alpha" value="0.2"/>
+			<float name="intIOR" value="1.3"/>
+			<float name="extIOR" value="1.0"/>
 		</bsdf>
 	</mesh>
 
 	<mesh type="obj">
 		<string name="filename" value="meshes/sphere2.obj"/>
 
-		<bsdf type="diffuse">
-			<color name="albedo" value="0.130 0.065 0.05"/>
+		<bsdf type="dielectric">
+			<float name="alpha" value="0.15"/>
+			<float name="intIOR" value="1.5"/>
+			<float name="extIOR" value="1.0"/>
 		</bsdf>
 	</mesh>
 
