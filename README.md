@@ -1,4 +1,4 @@
-[![CS440 Banner](https://rgl.s3.eu-central-1.amazonaws.com/media/uploads/wjakob/2017/02/16/cs440-logo_web.jpg)](https://rgl.s3.eu-central-1.amazonaws.com/media/uploads/wjakob/2017/02/20/cs440-rgl.jpg)
+[![CBox with smoke](https://github.com/moonlovelj/nori/blob/master/scenes/volume/cbox_smoke.png)](https://github.com/moonlovelj/nori/blob/master/scenes/volume/cbox_smoke.png)
 
 ## Nori Version 2
 ![Build status](https://github.com/wjakob/nori/workflows/Build/badge.svg)
