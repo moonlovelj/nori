@@ -90,7 +90,7 @@
 
 	<mesh type="obj">
 		<string name="filename" value="meshes/plate1.obj"/>
-		<bsdf type="microfacet">
+		<bsdf type="roughplastic">
 			<color name="kd" value="0.0175, 0.0225, 0.0325"/>
 			<float name="alpha" value="0.005"/>
 		</bsdf>
@@ -98,7 +98,7 @@
 
 	<mesh type="obj">
 		<string name="filename" value="meshes/plate2.obj"/>
-		<bsdf type="microfacet">
+		<bsdf type="roughplastic">
 			<color name="kd" value="0.0175, 0.0225, 0.0325"/>
 			<float name="alpha" value="0.02"/>
 		</bsdf>
@@ -106,7 +106,7 @@
 
 	<mesh type="obj">
 		<string name="filename" value="meshes/plate3.obj"/>
-		<bsdf type="microfacet">
+		<bsdf type="roughplastic">
 			<color name="kd" value="0.0175, 0.0225, 0.0325"/>
 			<float name="alpha" value="0.05"/>
 		</bsdf>
@@ -114,7 +114,7 @@
 
 	<mesh type="obj">
 		<string name="filename" value="meshes/plate4.obj"/>
-		<bsdf type="microfacet">
+		<bsdf type="roughplastic">
 			<color name="kd" value="0.0175, 0.0225, 0.0325"/>
 			<float name="alpha" value="0.1"/>
 		</bsdf>

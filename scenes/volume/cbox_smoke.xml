@@ -28,7 +28,7 @@
 	</camera>
 
 	<sampler type="independent">
-		<integer name="sampleCount" value="2048"/>
+		<integer name="sampleCount" value="512"/>
 	</sampler>
 
 	<mesh type="obj">
@@ -55,7 +55,7 @@
 		</bsdf>
 	</mesh>
 
-	<mesh type="obj">
+	<!-- <mesh type="obj">
 		<string name="filename" value="meshes/sphere1.obj"/>
 		<bsdf type="roughconductor">
 			<float name="alpha" value="0.2"/>
@@ -72,7 +72,7 @@
 			<float name="intIOR" value="1.5"/>
 			<float name="extIOR" value="1.0"/>
 		</bsdf>
-	</mesh>
+	</mesh> -->
 
 	<mesh type="obj">
 		<string name="filename" value="meshes/light.obj"/>
