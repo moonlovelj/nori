@@ -1,5 +1,5 @@
 [![CBox with smoke](https://github.com/moonlovelj/nori/blob/master/scenes/volume/cbox_smoke.png)](https://github.com/moonlovelj/nori/blob/master/scenes/volume/cbox_smoke.png)
-[![vech](https://github.com/moonlovelj/nori/blob/master/scenes/volume/cbox_smoke.png)](https://github.com/moonlovelj/nori/blob/master/scenes/pa5/veach_mi/veach_mis.png)
+[![vech](https://github.com/moonlovelj/nori/blob/master/scenes/pa5/veach_mi/veach_mis.png)](https://github.com/moonlovelj/nori/blob/master/scenes/pa5/veach_mi/veach_mis.png)
 [![table](https://github.com/moonlovelj/nori/blob/master/scenes/pa5/table/table_mis.png)](https://github.com/moonlovelj/nori/blob/master/scenes/pa5/table/table_mis.png)
 [![table rouch dielectic](https://github.com/moonlovelj/nori/blob/master/scenes/pa5/table/table_ajax_mis.png)](https://github.com/moonlovelj/nori/blob/master/scenes/pa5/table/table_ajax_mis.png)
 
